@@ -1,0 +1,531 @@
+---
+title: "R code for Disparity analyses of limb proportion of Mesozoic birds 2/2"
+geometry: scale=0.8
+papersize: a4
+output:
+  html_document: default
+  pdf_document: default
+header-includes:
+- \author[1]{Min Wang}
+- \author[2]{Graeme T. Lloyd}
+- \author[1]{Chi Zhang}
+- \author[1]{Zhonghe Zhou}
+- \affilition[1]{Institute of Vertebrate Paleontology and Paleoanthropology, Chinese
+  Academy of Sciences, China}
+- \affilition[2]{University of Leeds, UK}
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Introduciton
+This R code performs comparative phylogenetic analysis of the pattern and mode of morphological disparity of Mesozoic birds. Varing methods are used to scaled the phylogeny, including the minimal branch length (mbl), equal and tip-dated methods. 1) a distance matrix was constructed by calculating a morphological distance between each pair of taxa using the MorphDistMatrix function. We chose the Maximum Observable Rescaled Distance (MORD) and the Generalised Euclidean Distance (GED) as the distance metrics, because they are more suitable to datasets containing fossils; the distance metrics were also calculated using the ??HSJ?? approach to account for inapplicable characters. All these different approaches can be applied by changing the Arguments in MorphDistMatrix () and MorphMatrix2PCoA (). These different methods produced essentially same results, and thus the mbl-scaled and MORD distance methods were detailed bellow, and corresponding results were present in figures. 2) First, we explore the pattern and mode of disparity of Mesozoic birds as a whole using three metrics (sum of variances and ranges, and median distance from centroids), and then conducted intergroup comparison; 3) A nonparametric multivariate analysis of variance (PERMANOVA) test was used to test whether the three avian groups were statistically seprated in morphospace; 4) we subdivided the character matrix into six anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb), and conducted aforementioned comparative analyses to explore whether these subregions demonstrate different patterns; 5) finally, we performed the character exhaustion analyses.
+
+#Required packages
+install.packages(c("phytools","paleotree","maps","dispRity","strap","vegan","geomorph","devtools","gtools","knitr","MASS","phylobase","magrittr","kableExtra","RColorBrewer"))
+devtools::install_github("graemetlloyd/Claddis")
+
+#phylomorphospace of limb proportion
+```{r disparity analyses}
+library(Claddis)
+library(paleotree)
+library(strap)
+library(vegan)
+library(dispRity)
+library(geomorph)
+library(devtools)
+library(gtools)
+library(knitr)
+library(MASS)
+library(phylobase)
+library(magrittr)
+library(kableExtra)
+library(RColorBrewer)
+
+#load raw data
+nexus.data <- ReadMorphNexus("matrix.nex")
+tip.ages <- read.table("tipages.txt", sep=",", header=TRUE, row.names=1)
+mpts<-read.nexus("MPTs.nex")
+sc.tree<-consensus(mpts)
+#remove crown taxa
+crown.taxa.to.remove <- c("Gallus", "Anas")
+tree.data <- multi2di(sc.tree)
+ages.data<-tip.ages
+stem.tree.data<-drop.tip(tree.data,tip=crown.taxa.to.remove)
+stem.tip.ages<-tip.ages[-match(crown.taxa.to.remove, rownames(tip.ages)), ]
+stem.nexus.data<-MatrixPruner(CladisticMatrix=nexus.data,taxa2prune=crown.taxa.to.remove)
+stem.time.tree<-timePaleoPhy(stem.tree.data, stem.tip.ages, type = "mbl", vartime = 1)
+#calculate distance matrix using the MORD distance
+stem.dist.data <- MorphDistMatrix(stem.nexus.data)
+#Ordination of the distance metrics using PCoA
+stem.pcoa.data<-MorphMatrix2PCoA(stem.nexus.data)
+#Alternatively, distance matrix can be calculated using the GED
+#stem.pcoa.data<-MorphMatrix2PCoA(stem.nexus.data, Distance="GED")
+#or, using the Hopkins & John (2018) method to reat inapplicable characters--"HSJ" implemented in Claddis; to use this approach, a two-column matrix with colnames "DependentCharacter" and "IndependentCharacter" that speci?0?3es character hierarchies must be provided.
+##CharacterDependencies<-matrix(c(35,34,74,68,172,171),ncol=2,byrow=TRUE,dimnames=list(c(),c("DependentCharacter","IndependentCharacter")))
+##MorphMatrix2PCoA(stem.nexus.data2,DistInapplicableBehaviour="HSJ",CharacterDependencies=CharacterDependencies,Alpha=0.5)
+stem.pcoa.data$RemovedTaxa
+```
+```{r pcoas 1-3-plots, echo=FALSE, fig.align='center', fig.height=7, fig.width=7, warning=FALSE}
+MorphospacePlot(stem.pcoa.data, plot_taxon_names = TRUE)
+MorphospacePlot(stem.pcoa.data, x_axis=1, y_axis=3, plot_taxon_names = TRUE)
+MorphospacePlot(stem.pcoa.data, x_axis=2, y_axis=3, plot_taxon_names = TRUE)
+```
+```{r, pcoas 1& 2 plot, fig.align='center',echo=FALSE}
+pcoa.ages.data<-stem.tip.ages[-match(stem.pcoa.data$RemovedTaxa, rownames(stem.tip.ages)), ]
+#define avian groups
+Enantiornithes<-c("Boluochia","Concornis","Elsornis","Eoalulavis","Cathayornis","Eocathayornis","Eoenantiornis","Gobipteryx","Longipteryx","Longirostravis","Neuquenornis","Pengornis","Eopengornis","Chiappeavis","Parapengornis","Protopteryx","Rapaxavis","Shanweiniao","Vescornis","Piscivorenantiornis","Linyiornis","Sulcavis","Bohaiornis","Longusunguis","Shenqiornis","Zhouornis","Parabohaiornis","Fortunguavis","Pterygornis","Cruralispennia","Monoenantiornis","Shangyang","Mirusavis","Gretcheniao","Dunhuangia","Qiliania")
+Ornithuromorpha<-c("Archaeorhynchus","Schizooura","Bellulornis","Jianchangornis","Songlingornis","Longicrusavis","Apsaravis","Hongshanornis","Archaeornithura","Parahongshanornis","Tianyuornis","Patagopteryx","Yixianornis","Piscivoravis","Iteravis","Gansus","Ichthyornis","Hesperornis","Parahesperornis","Enaliornis","Baptornis_advenus","Baptornis_varneri","Vegavis","Mengciusornis","Yanornis","Abitusavis??,??Similiyanornis","Eogranivora","Xinghaiornis","Dingavis","Vorona")
+ NonOrnithothoraces<-c("Dromaeosauridae","Archaeopteryx","Jeholornis","Jinguofortis","Chongmingia","Sapeornis","Confuciusornis_sanctus","Changchengornis_hengdaoziensis","Eoconfuciusornis_zhengi","Confuciusornis_dui","Yangavis")
+#taxa remvoed in PCoA analyses (stem.pcoa.data$RemovedTaxa) are droped from corresponding group
+ pcoa.Enantiornithes<-c("Boluochia","Concornis","Elsornis","Eoalulavis","Cathayornis","Eocathayornis","Eoenantiornis","Gobipteryx","Longipteryx","Longirostravis","Neuquenornis","Pengornis","Eopengornis","Chiappeavis","Parapengornis","Protopteryx","Rapaxavis","Shanweiniao","Vescornis","Piscivorenantiornis","Linyiornis","Sulcavis","Bohaiornis","Longusunguis","Shenqiornis","Zhouornis","Parabohaiornis","Fortunguavis","Pterygornis","Cruralispennia","Monoenantiornis","Shangyang","Mirusavis","Gretcheniao")
+pcoa.Ornithuromorpha<-c("Archaeorhynchus","Schizooura","Bellulornis","Jianchangornis","Songlingornis","Longicrusavis","Apsaravis","Hongshanornis","Archaeornithura","Parahongshanornis","Tianyuornis","Patagopteryx","Yixianornis","Piscivoravis","Iteravis","Gansus","Ichthyornis","Hesperornis","Parahesperornis","Enaliornis","Baptornis_advenus","Baptornis_varneri","Vegavis","Mengciusornis","Yanornis","Abitusavis","Similiyanornis","Eogranivora","Xinghaiornis","Dingavis")
+pcoa.NonOrnithothoraces<-NonOrnithothoraces
+```
+```{r pcoas 1&2 stack plot, fig.height=10,fig.width=8, echo=FALSE}
+#stack plot of pcoa 1 against pcoa 2 through time
+CLADE<- sample(x = c("grey"), size = nrow(stem.pcoa.data$vectors), replace = TRUE)
+ for (i in 1:length(CLADE)) {if(row.names(stem.pcoa.data$vectors)[i]%in%pcoa.NonOrnithothoraces==TRUE) {
+ CLADE[i]<-c("black")
+ names(CLADE)[i]<-rownames(stem.pcoa.data$vectors)[i]
+ }else if(row.names(stem.pcoa.data$vectors)[i]%in%pcoa.Enantiornithes==TRUE) {
+ CLADE[i]<-c("blue")
+ names(CLADE)[i]<-rownames(stem.pcoa.data$vectors)[i]
+ }else if(row.names(stem.pcoa.data$vectors)[i]%in%pcoa.Ornithuromorpha==TRUE)
+ {CLADE[i]<-c("red")
+ names(CLADE)[i]<-rownames(stem.pcoa.data$vectors)[i]
+ }
+ }
+time_slices <- c(174.0,145.0,125.0,100.5,66.0)
+StackPlot(stem.pcoa.data$vectors, pcoa.ages.data, groups=CLADE, time_slices = time_slices)
+```
+
+```{r calculate disparity metrics, echo=FALSE}
+#first, sum of ranges:
+ sum(abs(apply(apply(stem.pcoa.data $vectors[pcoa.Enantiornithes, ], 2, range), 2, diff)))
+ sum(abs(apply(apply(stem.pcoa.data $vectors[pcoa.Ornithuromorpha, ], 2, range), 2, diff)))
+ sum(abs(apply(apply(stem.pcoa.data $vectors[pcoa.NonOrnithothoraces, ], 2, range), 2, diff)))
+#then, sum of variances:
+ sum(apply(stem.pcoa.data$vectors[pcoa.Enantiornithes, ], 2, var))
+ sum(apply(stem.pcoa.data$vectors[pcoa.Ornithuromorpha, ], 2, var))
+ sum(apply(stem.pcoa.data$vectors[pcoa.NonOrnithothoraces, ], 2, var))
+#disparity analyses using the first 30 PCoA axis values which account for over 95% of variances
+pcoa.data<-as.data.frame(stem.pcoa.data$vectors[,1:30])
+pcoa.data<-data.matrix(pcoa.data)
+disp.tree.data<-drop.tip(stem.tree.data,tip=stem.pcoa.data$RemovedTaxa)
+disp.tree.data<-timePaleoPhy(disp.tree.data, pcoa.ages.data, type = "mbl", vartime = 1)
+#First, disparity analyses of all Mesozoic birds through time
+time.bins<-c(170,145,129.4,100.5,86.3,66)
+stem.binned_morphospace <- chrono.subsets(data = pcoa.data, tree = disp.tree.data, method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = pcoa.ages.data)
+stem.boot.bin.morphospace <- boot.matrix(stem.binned_morphospace,bootstrap=1000)
+stem.disparity <- dispRity(stem.boot.bin.morphospace, metric = c(sum, variances))
+stem.disparity2<- dispRity(stem.boot.bin.morphospace, metric = c(median,centroids))
+stem.disparity3<- dispRity(stem.boot.bin.morphospace, metric = c(sum,ranges))
+```
+```{r disparity curves plot through time, fig.height=10,fig.width=10,fig.align='center', echo=FALSE}
+plot(stem.disparity,type="continuous",main="sum of variances of discrete character through time")
+plot(stem.disparity2,type="continuous",main="median distance from centroids of discrete character through time")
+plot(stem.disparity3,type="continuous",main="sum of ranges of discrete character through time")
+```
+```{r disparity among gropus, echo=FALSE}
+#first, prepare group data
+stem.group<-read.csv("stem.aves.group.csv",row.names=1)
+Group<-stem.group$Group
+names(Group)<-row.names(stem.group)
+stem.aves_groups<-custom.subsets(pcoa.data,group=list("NonOrnithothoraces"=which(Group=="NonOrnithothoraces"),"Enantiornithes"=which(Group=="Enantiornithes"),"Ornithuromorpha"=which(Group=="Ornithuromorpha")))
+stem.groups.bootstrap<-boot.matrix(stem.aves_groups,bootstrap=1000)
+stem.goups_disparity<-dispRity(stem.groups.bootstrap,metric=c(sum,variances))
+stem.goups_disparity2<-dispRity(stem.groups.bootstrap,metric=c(median,centroids))
+stem.goups_disparity3<-dispRity(stem.groups.bootstrap,metric=c(sum,ranges))
+```
+```{r boxplot of intergroup, fig.height=10,fig.width=10, echo=FALSE}
+par(mfrow=c(1,3))
+plot(stem.goups_disparity)
+plot(stem.goups_disparity2)
+plot(stem.goups_disparity3)
+```
+```{r disparity comparison between Enantiornithes and Ornithuromorpha, echo=FALSE}
+#compare Enantiornithes and Ornithuromorpha
+stem.group.txt<-read.delim("stem.aves.group.txt", sep ="\t", stringsAsFactors = FALSE)
+stem.En.group<-stem.group.txt[which(stem.group.txt[,2]%in%c("Enantiornithes")),]
+En.pcoa.data<-pcoa.data[stem.En.group$Taxa,]
+stem.Or.group<-stem.group.txt[which(stem.group.txt[,2]%in%c("Ornithuromorpha")),]
+Or.pcoa.data<-pcoa.data[stem.Or.group$Taxa,]
+##prepare time-scaled phylogeny of Enantiornithes:
+phylo.En.ages<-pcoa.ages.data[match(pcoa.Enantiornithes,rownames(pcoa.ages.data)),]
+phylo.Or.ages<-pcoa.ages.data[match(pcoa.Ornithuromorpha,rownames(pcoa.ages.data)),]
+En.phylogeny<-drop.tip(stem.tree.data,tip=stem.pcoa.data$RemovedTaxa)
+En.phylogeny<-drop.tip(En.phylogeny,tip= NonOrnithothoraces)
+En.phylogeny<-drop.tip(En.phylogeny,tip= pcoa.Ornithuromorpha)
+En.phylogeny<-timePaleoPhy(En.phylogeny, phylo.En.ages, type = "mbl", vartime = 1)
+###add labels to internal nodes based on the tree. You can check the the labels automatically assigned by R by plotting the tree
+###plot (En.phylogeny)
+###nodelabels(,col="black")
+###here, the internal nodes within Enantiornithes are: 83-115
+En.phylogeny$node.label<-paste(83:115,sep="")
+##prepare time-scaled phylogeny of Ornithuromorpha:
+Or.phylogeny<-drop.tip(stem.tree.data,tip=stem.pcoa.data$RemovedTaxa)
+Or.phylogeny<-drop.tip(Or.phylogeny,tip= NonOrnithothoraces)
+Or.phylogeny<-drop.tip(Or.phylogeny,tip= pcoa.Enantiornithes)
+Or.phylogeny <-timePaleoPhy(Or.phylogeny, phylo.Or.ages, type = "mbl", vartime = 1)
+Or.phylogeny$node.label<-paste(116:144,sep="")
+En_Or_time_bins<-c(150,125,100.5,66)
+En.binned.morphospace <- chrono.subsets(data = En.pcoa.data, tree = En.phylogeny, method = "discrete", time = En_Or_time_bins, inc.nodes = FALSE, FADLAD = phylo.En.ages)
+En.boot.bin.morphospace<- boot.matrix(En.binned.morphospace,bootstrap=1000)
+En.boot.disparity<- dispRity(En.boot.bin.morphospace, metric = c(sum, variances))
+En.boot.disparity2<- dispRity(En.boot.bin.morphospace, metric = c(median,centroids))
+En.boot.disparity3<- dispRity(En.boot.bin.morphospace, metric = c(sum,ranges))
+Or.binned.morphospace <- chrono.subsets(data = Or.pcoa.data, tree = Or.phylogeny, method = "discrete", time = En_Or_time_bins, inc.nodes = FALSE, FADLAD = phylo.Or.ages)
+Or.boot.bin.morphospace<- boot.matrix(Or.binned.morphospace,bootstrap=1000)
+Or.boot.disparity<- dispRity(Or.boot.bin.morphospace, metric = c(sum, variances))
+Or.boot.disparity2<- dispRity(Or.boot.bin.morphospace, metric = c(median,centroids))
+Or.boot.disparity3<- dispRity(Or.boot.bin.morphospace, metric = c(sum,ranges))
+```
+```{r disparity curve plots of Enantiornithes and Ornithuromorpha, fig.height=10,fig.width=10, echo=FALSE}
+#plot disaprity curves through time for both clades:
+par(mfrow=c(3,2))
+plot(En.boot.disparity,type="continuous",main="En sum variances")
+plot(Or.boot.disparity,type="continuous",main="Or sum variances")
+plot(En.boot.disparity2,type="continuous",main="En median distance from centroids")
+plot(Or.boot.disparity2,type="continuous",main="Or median distance from centroids")
+plot(En.boot.disparity3,type="continuous",main="En sum ranges")
+plot(Or.boot.disparity3,type="continuous",main="Or sum ranges")
+```
+```{r PERMANOVA test, echo=FALSE}
+#PERMANOVA test
+stem.group.txt<-read.delim("stem.aves.group.txt", sep ="\t", stringsAsFactors = FALSE)
+stem.group.En.Or<-stem.group.txt[which(stem.group.txt[,2]%in%c("Enantiornithes","Ornithuromorpha")),]
+stem.group.En.NonOr<-stem.group.txt[which(stem.group.txt[,2]%in%c("Enantiornithes","NonOrnithothoraces")),]
+stem.group.Or.NonOr<-stem.group.txt[which(stem.group.txt[,2]%in%c("Ornithuromorpha","NonOrnithothoraces")),]
+stem.En.Or.pcoa<-pcoa.data[stem.group.En.Or$Taxa,]
+stem.En.NonOr.pcoa<-pcoa.data[stem.group.En.NonOr$Taxa,]
+stem.Or.NonOr.pcoa<-pcoa.data[stem.group.Or.NonOr$Taxa,]
+pairwise.adonis <-function(x,factors, sim.method, p.adjust.m)
+{
+library(vegan)
+co = as.matrix(combn(unique(factors),2))
+pairs = c()
+F.Model =c()
+R2 = c()
+p.value = c()
+for(elem in 1:ncol(co)){
+ad = adonis(x[factors %in%c(as.character(co[1,elem]),as.character(co[2,elem])),] ~
+factors[factors %in%c(as.character(co[1,elem]),as.character(co[2,elem]))] , method =sim.method);
+pairs =c(pairs,paste(co[1,elem],'&',co[2,elem]));
+F.Model =c(F.Model,ad$aov.tab[1,4]);
+R2 = c(R2,ad$aov.tab[1,5]);
+p.value = c(p.value,ad$aov.tab[1,6])
+}
+p.adjusted =p.adjust(p.value,method=p.adjust.m)
+pairw.res = data.frame(pairs,F.Model,R2,p.value,p.adjusted)
+return(pairw.res)
+}
+stem.pairwise.test<-pairwise.adonis(pcoa.data, stem.group.txt$Group, sim.method="mahalanobis", p.adjust.m="bonferroni")
+stem.pairwise.test
+```
+```{r disparity with ancestral considered, echo=FALSE}
+##############################
+#analyses when phylogeny is considered with pcoa values of internal nodes are estimated
+#load discrete dataset where the two crow  taxa have been removed
+stem.nexus.data <- ReadMorphNexus("stem.matrix.nex")
+#Because the state of character 38 does not change, which causes errs in R in following analyses, and this character were removed from the dataset
+stem.nexus.data2<-MatrixPruner(CladisticMatrix= stem.nexus.data, characters2prune=c(38))
+phylo.pcoa.data<-MorphMatrix2PCoA(stem.nexus.data2, Tree= stem.time.tree)
+```
+```{r phylo-pcoa plot, fig.height=10,fig.width=10,echo=FALSE}
+MorphospacePlot(phylo.pcoa.data, plot_taxon_names = TRUE,plot_internal_nodes=TRUE)
+MorphospacePlot(phylo.pcoa.data, x_axis=1, y_axis=3, plot_taxon_names = TRUE,plot_internal_nodes=TRUE)
+MorphospacePlot(phylo.pcoa.data, x_axis=2, y_axis=3, plot_taxon_names = TRUE,plot_internal_nodes=TRUE)
+```
+```{r calculate disparity matrices with ancestral nodes, echo=FALSE}
+stem.tree<-phylo.pcoa.data$Tree
+#adding labels to internal nodes
+stem.tree$node.label<-paste(76:149,sep="")
+nodes.tip.NonOr.group<-c(NonOrnithothoraces,c(76:82),c(145:149))
+nodes.tips.En.group<-c(pcoa.Enantiornithes,c(83:115))
+nodes.tips.Or.group<-c(pcoa.Ornithuromorpha,c(116:144))
+##calculate disparity matrices. First sum of ranges:
+sum(abs(apply(apply(phylo.pcoa.data$vectors[nodes.tips.En.group, ], 2, range), 2, diff)))
+sum(abs(apply(apply(phylo.pcoa.data$vectors[nodes.tips.Or.group, ], 2, range), 2, diff)))
+sum(abs(apply(apply(phylo.pcoa.data$vectors[nodes.tip.NonOr.group, ], 2, range), 2, diff)))
+#Then, sum of variances:
+sum(apply(phylo.pcoa.data$vectors[nodes.tips.En.group, ], 2, var))
+sum(apply(phylo.pcoa.data$vectors[nodes.tips.Or.group, ], 2, var))
+sum(apply(phylo.pcoa.data$vectors[nodes.tip.NonOr.group, ], 2, var))
+#disparity analyses using the first 40 PCoA axes values
+pcoa.data2<-as.data.frame(phylo.pcoa.data$vectors[,1:40])
+pcoa.data2 <-data.matrix(pcoa.data2)
+```
+```{r disparity of all Mesozoic birds through time with ancestral nodes,fig.height=10,fig.width=10,fig.align='center', echo=FALSE}
+#disparity of all Mesozoic birds through time
+phylo.binned.morphspace<- chrono.subsets(data = pcoa.data2, tree = stem.tree, method = "discrete", time = time.bins, inc.nodes = TRUE, FADLAD = pcoa.ages.data)
+phylo.boot.bin.morphospace <- boot.matrix(phylo.binned.morphspace,bootstrap=1000)
+phylo.disparity <- dispRity(phylo.boot.bin.morphospace, metric = c(sum, variances))
+phylo.disparity2<- dispRity(phylo.boot.bin.morphospace, metric = c(median,centroids))
+phylo.disparity3<- dispRity(phylo.boot.bin.morphospace, metric = c(sum,ranges))
+plot(phylo.disparity,type="continuous",main="All taxa & ancestral nodes: sum of variances of discrete character through time")
+plot(phylo.disparity2,type="continuous",main="All taxa & ancestral nodes: median distance from centroids of discrete character through time")
+plot(phylo.disparity3,type="continuous",main="All taxa & ancestral nodes: sum of ranges of discrete character through time")
+```
+```{r compare disparity metrics between the three groups: NonOrnithothoraces, Enantiornithes, and Ornithuromorpha, echo=FALSE}
+#First, load the csv file that contain the grouping information, the rownames (taxa) are identical with tip lables of stem.tree
+phylo.group<-read.csv("nodes.tips.aves.group.csv",row.names=1)
+phylo.nodes.tips.group<-phylo.group$Group
+names(phylo.nodes.tips.group)<-row.names(phylo.group)
+phylo.stem.aves.group<-custom.subsets(pcoa.data2,group=list("NonOrnithothoraces"=which(phylo.nodes.tips.group=="NonOrnithothoraces"),"Enantiornithes"=which(phylo.nodes.tips.group=="Enantiornithes"),"Ornithuromorpha"=which(phylo.nodes.tips.group=="Ornithuromorpha")))
+phylo.stem.groups.bootstrap<-boot.matrix(phylo.stem.aves.group,bootstrap=1000)
+phylo.stem.goups.disparity<-dispRity(phylo.stem.groups.bootstrap,metric=c(sum,variances))
+phylo.stem.goups.disparity2<-dispRity(phylo.stem.groups.bootstrap,metric=c(median,centroids))
+phylo.stem.goups.disparity3<-dispRity(phylo.stem.groups.bootstrap,metric=c(sum,ranges))
+```
+```{r Box plot of three disparity metrics, fig.height=10,fig.width=10, echo=FALSE}
+par(mfrow=c(1,3))
+plot(phylo.stem.goups.disparity)
+plot(phylo.stem.goups.disparity2)
+plot(phylo.stem.goups.disparity3)
+```
+```{r Comparison between Enantiornithes and Ornithuromorpha with ancestral nodes, echo=FALSE}
+#Comparison between Enantiornithes and Ornithuromorpha
+phylo.En.pcoa.data<-pcoa.data2[nodes.tips.En.group,]
+phylo.Or.pcoa.data<-pcoa.data2[nodes.tips.Or.group,]
+phylo.En.binned.morphospace <- chrono.subsets(data = phylo.En.pcoa.data, tree = En.phylogeny, method = "discrete", time = En_Or_time_bins, inc.nodes = TRUE, FADLAD = phylo.En.ages)
+phylo.En.boot.bin.morphospace <- boot.matrix(phylo.En.binned.morphospace,bootstrap=1000)
+phylo.En.disparity <- dispRity(phylo.En.boot.bin.morphospace, metric = c(sum, variances))
+phylo.En.disparity2<- dispRity(phylo.En.boot.bin.morphospace, metric = c(median,centroids))
+phylo.En.disparity3<- dispRity(phylo.En.boot.bin.morphospace, metric = c(sum,ranges))
+phylo.Or.binned.morphospace <- chrono.subsets(data = phylo.Or.pcoa.data, tree = Or.phylogeny, method = "discrete", time = En_Or_time_bins, inc.nodes = TRUE, FADLAD = phylo.Or.ages)
+phylo.Or.boot.bin.morphospace <- boot.matrix(phylo.Or.binned.morphospace,bootstrap=1000)
+phylo.Or.disparity <- dispRity(phylo.Or.boot.bin.morphospace, metric = c(sum, variances))
+phylo.Or.disparity2<- dispRity(phylo.Or.boot.bin.morphospace, metric = c(median,centroids))
+phylo.Or.disparity3<- dispRity(phylo.Or.boot.bin.morphospace, metric = c(sum,ranges)) 
+```
+```{r disparity curves of Enantiornithes and Ornithuromorpha through time with ancestral nodes, fig.height=10,fig.width=10, echo=FALSE}
+par(mfrow=c(3,2))
+plot(phylo.En.disparity,type="continuous",main="En&ancestral nodes: sum of variances")
+plot(phylo.Or.disparity,type="continuous",main="Or&ancestral nodes: sum of variances")
+plot(phylo.En.disparity2,type="continuous",main="En&ancestral nodes: median distance from centroids")
+plot(phylo.Or.disparity2,type="continuous",main="Or&ancestral nodes: median distance from centroids")
+plot(phylo.En.disparity3,type="continuous",main="En&ancestral nodes: sum of ranges")
+plot(phylo.Or.disparity3,type="continuous",main="Or&ancestral nodes: sum of ranges")
+```
+```{r permanova test with ancestal nodes, echo=FALSE}
+#permanova test among the three avian groups with ancestral nodes considered:
+nodes.tips.En.Or.groups<-c(nodes.tips.En.group, nodes.tips.Or.group)
+phylo.En.Or.pcoa<-pcoa.data2[nodes.tips.En.Or.groups,]
+##load text file that contain the grouping informtion with taxa and internal nodes
+phylo.En.Or.groups<-read.delim("nodes.tips.aves.group.txt", sep ="\t", stringsAsFactors = FALSE)
+nodes.tips.En.Or.groups<-phylo.En.Or.groups[which(phylo.En.Or.groups[,2]%in%c("Enantiornithes","Ornithuromorpha")),]
+phylo.stem.pairwise.test<-pairwise.adonis(pcoa.data2, phylo.En.Or.groups$Group, sim.method="mahalanobis", p.adjust.m="bonferroni")
+phylo.stem.pairwise.test
+
+# For disparity analyses of divided anatomical subregions
+##First, we dived the discrete character matrix:
+##skull.character<-c(1:48,262,263,267,268,275)
+##axial.character<-c(49:81,269,270)
+##pectoral.character<-c(82:120,246:249,251,252,271,274,276)
+##forelimb.character<-c(121:177,250,253,265,277:280)
+##pelvis.character<-c(178:198,272,273)
+##hindlimb.character<-c(199:243,254:261,264,266)
+## To be noticed, there are two characters (ch.244, ch.245) that describe feathers and cannot be assigned to any subregion, and shall be removed. Here, we choose the pectoral region to show how it works:
+##nexus.data<-MatrixPruner(CladisticMatrix= nexus.data, characters2prune=c(skull.character,axial.character,forelimb.character,pelvis.character,hindlimb.character,244,245))
+##Then, we can repeat aforementioned procedure to conduct disparit analyses of the pectoral girdle.
+```
+```{r Analyses of effect of body mass on discrete character morphospace, echo=FALSE}
+#Load body mass data (mass.csv)
+
+
+mass <- matrix(data = c(143.47, 1084.33, 507.74, 825.25, 1982.61, 358.95, 138.4, 237.09, 173.41, 420.61, 112.49, 56.29, 81.42, 57.01, 88.85, 116.95, 43.01, 102.83, 524.68, 347.78, 111.39, 488.41, 188.18, 63.78, 22.69, 40.02, 38.3, 238.84, 281.34, 221.68, 220.01, 170.54, 40.61, 345.57, 143.47, 242.37, 86.01, 15.04, 186.67, 319.74, 547.8, 1044.63, 1040.28, 43.01, 153.95, 93.7, 62.23, 109.21, 91.74, 3748.94, 350, 672.79, 220.01, 231.88, 153.95, 19523.12, 6372.23, 11741.66, 821.48, 98.7, 443.38, 35.52, 1617.31, 679.46, 727.28, 152.62, 339, 602.09, 269.84, 92.71, 2642.31), ncol = 1, dimnames = list(c("Archaeopteryx", "Jeholornis", "Jinguofortis", "Chongmingia", "Sapeornis", "Confuciusornis_sanctus", "Changchengornis_hengdaoziensis", "Eoconfuciusornis_zhengi", "Confuciusornis_dui", "Yangavis", "Boluochia", "Concornis", "Eoalulavis", "Cathayornis", "Eoenantiornis", "Gobipteryx", "Longipteryx", "Longirostravis", "Neuquenornis", "Pengornis", "Eopengornis", "Chiappeavis", "Parapengornis", "Protopteryx", "Rapaxavis", "Shanweiniao", "Vescornis", "Piscivorenantiornis", "Linyiornis", "Sulcavis", "Bohaiornis", "Longusunguis", "Shenqiornis", "Zhouornis", "Parabohaiornis", "Fortunguavis", "Pterygornis", "Cruralispennia", "Monoenantiornis", "Archaeorhynchus", "Schizooura", "Bellulornis", "Jianchangornis", "Longicrusavis", "Apsaravis", "Hongshanornis", "Archaeornithura", "Parahongshanornis", "Tianyuornis", "Patagopteryx", "Yixianornis", "Piscivoravis", "Iteravis", "Gansus", "Ichthyornis", "Hesperornis", "Baptornis_advenus", "Baptornis_varneri", "Vegavis", "Shangyang", "Mengciusornis", "Mirusavis", "Yanornis", "Similiyanornis", "Abitusavis", "Eogranivora", "Gretcheniao", "Xinghaiornis", "Dingavis", "Qiliania", "Vorona"), "mass"))
+mass<- as.data.frame(mass)
+mass$mass <- log10(as.numeric(mass$mass))
+#Reload phylogeny, discrete matrix, tip-dates
+tip.ages <- read.table("tipages.txt", sep=",", header=TRUE, row.names=1)
+mpts<-read.nexus("MPTs.nex")
+nex_filenames <- list.files(pattern="*.nex$")
+for (nex_filename in nex_filenames) {matrix<- Claddis::ReadMorphNexus("matrix.nex")}
+sc.tree<-consensus(mpts)
+tree.data <- multi2di(sc.tree)
+tree<-timePaleoPhy(tree.data, tip.ages, type = "mbl", vartime = 1)
+#remove taxa without body mass
+taxa.to.remove <- c("Gallus", "Anas","Dromaeosauridae","Elsornis","Eocathayornis","Songlingornis","Parahesperornis","Enaliornis","Dunhuangia")
+matrix<-MatrixPruner(CladisticMatrix= matrix,taxa2prune= taxa.to.remove)
+#The following analyses about Pcoa-bodymass are based on the script from Brougham & Campione (2020), and interested readers please see this original study.
+distances <- Claddis::MorphDistMatrix(matrix)
+max_dists <- distances$DistanceMatrix
+pcoa_result <- ape::pcoa(max_dists, correction = "cailliez")
+pcoa_bm <- merge(mass, pcoa_result$vectors.cor, by.x = 0, by.y = 0)
+rownames(pcoa_bm) <- pcoa_bm$Row.names
+ pcoa_bm$Row.names <- NULL
+pcoa_bm$group <- NULL
+pcoa_bm <- pcoa_bm[rownames(pcoa_bm) %in% tree$tip.label, ]
+pcoa_bm <- pcoa_bm[!is.na(pcoa_bm$mass), ]
+ tree <- ape::drop.tip(tree, tree$tip.label[!tree$tip.label%in% rownames(pcoa_bm)])
+
+corphy_bm_pco1 <- ape::corphylo(pcoa_bm[c(1, 2)], phy = tree)
+pco1_rlm <- MASS::rlm(Axis.1 ~ mass, pcoa_bm, method = "MM", maxit = 1000)
+pco1_rlm <- lm(Axis.1 ~ mass, pco1_rlm$model, weights = pco1_rlm$w)
+pco_n_pgls <- sapply(2:ncol(pcoa_bm), function (idx) {geomorph::procD.pgls(pco ~ mass, tree, data = list(pco = pcoa_bm[, idx], mass = pcoa_bm$mass)) })
+
+bm_include <- rownames(pcoa_bm[!is.na(pcoa_bm$mass), ])
+trim_dist_matrix <- max_dists[bm_include, bm_include]
+dist_bm <- dist(mass[bm_include, "mass"])
+attr(dist_bm, "Labels") <- bm_include
+trim_dist_matrix <- dist(trim_dist_matrix)
+mantel_result <- ade4::mantel.rtest(trim_dist_matrix, dist_bm, nrepet = 9999)
+
+pco_all_pgls <- geomorph::procD.pgls(pcoa_bm[, -1] ~ pcoa_bm[, 1], tree)
+dists_lm <- lm(dist_bm ~ trim_dist_matrix)
+all_results <- c()
+results <- list(pcoa = pcoa_bm,
+                corphy_bm_pco1 = corphy_bm_pco1,
+               pco1_rlm = pco1_rlm,
+                 pco1_pv = pcoa_result$values$Rel_corr_eig[1],
+              pco_n_pgls = pco_n_pgls,
+                  pco_all_pgls = pco_all_pgls,
+              mantel = mantel_result,
+                 dists_lm = dists_lm,
+               fn = nex_filename)
+
+if (!length(all_results)) {
+    all_results <- list(results)
+   } else {
+     all_results[length(all_results) + 1] <- list(results)
+  }
+```
+```{r effect of body mass on morphospace, fig.height=10,fig.width=10, echo=FALSE}
+outgroups <- list("matrix.nex" = c("Archaeopteryx"))
+all_results <- lapply(all_results, function (x) {x$outgroups <- outgroups[x$fn][[1]]
+return(x)})
+
+par(mai=c(0.2, 0.2, 0.2, 0.2), oma=c(4, 4, 0, 0))
+stat_table <- data.frame(row.names = c("df", "% PCo1 var.", "Phy. Corr.", "Slope.1", "r2.1", "Slope.2", "r2.2", "Statistic", "r2.3", "pco.all.aov r2"))
+
+idx <- 1
+for (result in all_results) {
+   plot_bg <- ifelse(rownames(result$pcoa) %in% result$outgroups, "white", "black")
+   plot(result$pcoa$Axis.1 ~ result$pcoa$mass, pch=21, cex=0.8, xlab="", ylab="", frame.plot=F, col="black", bg=plot_bg)
+  clip(min(result$pcoa$mass, na.rm = TRUE), max(result$pcoa$mass, na.rm = TRUE), min(result$pcoa$Axis.1), max(result$pcoa$Axis.1))
+  abline(result$pco1_rlm, col="red")
+  title(chartr("123456789", "abcdefghi", as.character(idx)), adj=0.05, line=-0.5)
+  idx <- idx + 1
+  pco1_rlm_stars <- gtools::stars.pval(coef(summary(result$pco1_rlm))[8])[1]
+  pco1_r2 <- summary(result$pco1_rlm)$r.squared
+  pco1_pgls_stars <- gtools::stars.pval(result$pco_n_pgls[,1]$aov.table$`Pr(>F)`[1])[1]
+  mantel_stars <- gtools::stars.pval(result$mantel$pvalue)[1]
+  pco_all_pgls_stars <- gtools::stars.pval(result$pco_all_pgls$aov.table$`Pr(>F)`[1])[1]
+  stat_table[result$fn] = c(result$pco1_rlm$df.residual,
+                            signif(result$pco1_pv * 100, 2),
+                            signif(result$corphy_bm_pco1$cor.matrix[2], 2),
+                            paste(signif(result$pco1_rlm$coefficients[2], 2), pco1_rlm_stars),
+                            signif(pco1_r2, 2),
+                            paste(signif(result$pco_n_pgls[,1]$pgls.coefficients[2], 2), pco1_pgls_stars),
+                            signif(result$pco_n_pgls[,1]$aov.table$Rsq[1], 2),
+                            paste(signif(result$mantel$obs, 2), mantel_stars),
+                            signif(result$mantel$obs**2, 2),
+                            paste(signif(result$pco_all_pgls$aov.table$Rsq[1], 2), pco_all_pgls_stars))
+}
+
+mtext('Log body mass (kg)', side = 1, outer = TRUE, line = 2)
+mtext('PCo1', side = 2, outer = TRUE, line = 2)
+```
+```{r test of effect of body mass on morphospace, echo=FALSE}
+names(stat_table) <- c("Mesozoic birds")
+stat_table <- t(stat_table)
+colnames(stat_table)[c(5, 7, 9, 10)] <- "r2"
+colnames(stat_table)[c(4, 6)] <- "Slope"
+
+knitr::kable(stat_table, caption = "The results of the robust regression and multivariate phylogenetic GLS for PCo1, and Mantel tests and multivariate phylogenetic GLS of all PCo axes, for discrete character-taxon matrices of Mesozoic birds.", booktabs = TRUE) %>%
+  kableExtra::kable_styling(latex_options = c("striped", "scale_down"), stripe_color = "lightergray") %>%
+  kableExtra::add_header_above(c(" " = 4, "Robust Linear Regression" = 2, "Phylogenetic GLS" = 2, "Mantel test" = 2, "Phylogenetic GLS" = 1))
+```
+```{r effect of body mass on morphospace 2, fig.height=10,fig.width=10, echo=FALSE}
+par(mai=c(0.2, 0.2, 0.2, 0.2), oma=c(4, 4, 0, 0))
+idx <- 1
+for (result in all_results) {
+  stdv <- qnorm(1 - 0.05/2)/sqrt(ncol(result$pco_n_pgls))
+  coeffs <- apply(result$pco_n_pgls, 2, function (n) {n$aov.table$Rsq[1]})
+  barplot(coeffs, col=gray(0.6))
+  clip(0,ncol(result$pco_n_pgls)*1.2, min(coeffs), max(coeffs))
+  abline(h=stdv, col="red")
+  title(chartr("123456789", "abcdefghi", as.character(idx)), adj=0.05, line=0.5)
+  idx <- idx + 1
+}
+mtext('PCoA Axis', side = 1, outer = TRUE, line = 2)
+mtext('pGLS correlation coefficient', side = 2, outer = TRUE, line = 2)
+```
+```{r effect of body mass on morphospace 3, fig.height=10,fig.width=10, echo=FALSE}
+par(mai=c(0.2, 0.2, 0.2, 0.2), oma=c(4, 4, 0, 0))
+idx <- 1
+for (result in all_results) {
+  plot(result$mantel$plot$hist, xlim=result$mantel$plot$xlim, main=NULL, col=gray(0.6))
+  y0 <- max(result$mantel$plot$hist$counts)
+  lines(c(result$mantel$obs, result$mantel$obs), c(y0/2, 0))
+  points(result$mantel$obs, y0/2, pch = 16, cex = 2)
+    
+  title(chartr("123456789", "abcdefghi", as.character(idx)), adj=0.05, line=-0.5)
+  idx <- idx + 1
+}
+mtext('Distance', side = 1, outer = TRUE, line = 2)
+mtext('Frequency', side = 2, outer = TRUE, line = 2)
+```
+```{r effect of body mass on morphospace 4, fig.height=10,fig.width=10, echo=FALSE}
+par(mai=c(0.2, 0.2, 0.2, 0.2), oma=c(4, 4, 0, 0))
+idx <- 1
+palette <- RColorBrewer::brewer.pal(8, "Set1")
+for (result in all_results) {
+  dens <- MASS::kde2d(result$dists_lm$model$trim_dist_matrix,
+                result$dists_lm$model$dist_bm, n=100)
+  myPal <- colorRampPalette(c("white",palette[c(2,6,5,1)]))
+  plot(result$dists_lm$model$trim_dist_matrix,
+       result$dists_lm$model$dist_bm, type="n", frame.plot=FALSE)
+  image(dens, col=myPal(256), add = TRUE)
+  title(chartr("123456789", "abcdefghi", as.character(idx)), adj=0.05, line=-0.5)
+  clip(min(result$dists_lm$model$trim_dist_matrix),
+       max(result$dists_lm$model$trim_dist_matrix),
+       min(result$dists_lm$model$dist_bm),
+       max(result$dists_lm$model$dist_bm))
+  abline(result$dists_lm)
+  idx <- idx + 1
+}
+mtext('Discrete character distances', side = 1, outer = TRUE, line = 2)
+mtext('Body mass distances', side = 2, outer = TRUE, line = 2)
+```
+```{r Character exhaustion analyses, echo=FALSE}
+#The analysis was conducted using the exhaustionFunctions of the R paleotree package. Because discrete characters that were coded as ??uncertain?? cannot be appropriately imported into the current version of exhaustionFunctions, those characters were treated as missing values. Therefore, the character matrix has been revised accordingly.
+#load revised data matrix and reloading all other data
+nexus.data<- ReadMorphNexus("matrix_exhaustion.nex")
+mpts<-read.nexus("MPTs.nex")
+sc.tree<-consensus(mpts)
+crown.taxa.to.remove <- c("Gallus", "Anas")
+tree.data <- multi2di(sc.tree)
+stem.tree.data<-drop.tip(tree.data,tip=crown.taxa.to.remove)
+stem.nexus.data<-MatrixPruner(CladisticMatrix=nexus.data,taxa2prune=crown.taxa.to.remove)
+Enantiornithes<-c("Boluochia","Concornis","Elsornis","Eoalulavis","Cathayornis","Eocathayornis","Eoenantiornis","Gobipteryx","Longipteryx","Longirostravis","Neuquenornis","Pengornis","Eopengornis","Chiappeavis","Parapengornis","Protopteryx","Rapaxavis","Shanweiniao","Vescornis","Piscivorenantiornis","Linyiornis","Sulcavis","Bohaiornis","Longusunguis","Shenqiornis","Zhouornis","Parabohaiornis","Fortunguavis","Pterygornis","Cruralispennia","Monoenantiornis","Shangyang","Mirusavis","Gretcheniao","Dunhuangia","Qiliania")
+Ornithuromorpha<-c("Archaeorhynchus","Schizooura","Bellulornis","Jianchangornis","Songlingornis","Longicrusavis","Apsaravis","Hongshanornis","Archaeornithura","Parahongshanornis","Tianyuornis","Patagopteryx","Yixianornis","Piscivoravis","Iteravis","Gansus","Ichthyornis","Hesperornis","Parahesperornis","Enaliornis","Baptornis_advenus","Baptornis_varneri","Vegavis","Mengciusornis","Yanornis","Similiyanornis","Abitusavis","Eogranivora","Xinghaiornis","Dingavis","Vorona")
+NonOrnithothoraces<-c("Dromaeosauridae","Archaeopteryx","Jeholornis","Jinguofortis","Chongmingia","Sapeornis","Confuciusornis_sanctus","Changchengornis_hengdaoziensis","Eoconfuciusornis_zhengi","Confuciusornis_dui","Yangavis")
+#prepare characte matrix for Enantiornithes, Ornithuromorpha, and all taxa, respectively
+En.nexus.data<-MatrixPruner(CladisticMatrix=stem.nexus.data,taxa2prune=NonOrnithothoraces)
+En.nexus.data<-MatrixPruner(CladisticMatrix=En.nexus.data,taxa2prune=Ornithuromorpha)
+Or.nexus.data<-MatrixPruner(CladisticMatrix=stem.nexus.data,taxa2prune=NonOrnithothoraces)
+Or.nexus.data<-MatrixPruner(CladisticMatrix=Or.nexus.data,taxa2prune= Enantiornithes)
+En.tree<-drop.tip(stem.tree.data,tip=NonOrnithothoraces)
+En.tree<-drop.tip(En.tree,tip= Ornithuromorpha)
+Or.tree<-drop.tip(stem.tree.data,tip=NonOrnithothoraces)
+Or.tree<-drop.tip(Or.tree,tip= Enantiornithes)
+all.nexus.data<-data.matrix(stem.nexus.data$Matrix_1$Matrix)
+all.nexus.data[is.na(stem.nexus.data$Matrix_1$Matrix)]<-"?"
+En.charMat<-data.matrix(En.nexus.data$Matrix_1$Matrix)
+En.charMat[is.na(En.nexus.data$Matrix_1$Matrix)]<-"?"
+Or.charMat<-data.matrix(Or.nexus.data$Matrix_1$Matrix)
+Or.charMat[is.na(Or.nexus.data$Matrix_1$Matrix)]<-"?"
+```
+```{r exhaustion curves, fig.height=10,fig.width=10, echo=FALSE}
+All.exhaustionResults<- accioExhaustionCurve( phyloTree = stem.tree.data, charData = all.nexus.data, charTypes = stem.nexus.data$Matrix_1$Ordering, outgroup = "Archaeopteryx")
+En.exhaustionResults<- accioExhaustionCurve( phyloTree = En.tree, charData = En.charMat, charTypes = stem.nexus.data$Matrix_1$Ordering, outgroup = "Protopteryx")
+Or.exhaustionResults<- accioExhaustionCurve( phyloTree = Or.tree, charData = Or.charMat, charTypes = stem.nexus.data$Matrix_1$Ordering, outgroup = "Archaeorhynchus")
+En.result<-accioBestAcquisitionModel(exhaustion_info = En.exhaustionResults,changesType = "charAlt",models = c("exponential","gamma","lognormal","zipf"))
+Or.result<-accioBestAcquisitionModel(exhaustion_info = Or.exhaustionResults,changesType = "charAlt",models = c("exponential","gamma","lognormal","zipf"))
+charExhaustPlot(exhaustion_info = En.exhaustionResults, changesType = "charAlt")
+charExhaustPlot(exhaustion_info = Or.exhaustionResults, changesType = "charAlt")
+```
