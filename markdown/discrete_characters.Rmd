@@ -152,7 +152,7 @@ stem.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, distance_m
 
 # The problem of inapplicable characters
 
-An additional complication for discrete characters is the coding of some data as "inapplicable" due to hierarchical coding strategies/ E.g., one character may encode the presence or absence of feathers and another the coour of those feathers. For a taxon that is coded as absent for the presence of feathers there is no logical coding for their colour. Even coding them as missing is misleading, especially if data are rescaled or an estimate for this state is made when no value is logically possible. Failing to account for this issue can lead to ranked distances that are misleading and hence distort any subsequent downstream analysis, including ordination.
+An additional complication for discrete characters is the coding of some data as "inapplicable" due to hierarchical coding strategies. E.g., one character may encode the presence or absence of feathers and another the coour of those feathers. For a taxon that is coded as absent for the presence of feathers there is no logical coding for their colour. Even coding them as missing is misleading, especially if data are rescaled or an estimate for this state is made when no value is logically possible. Failing to account for this issue can lead to ranked distances that are misleading and hence distort any subsequent downstream analysis, including ordination.
 
 A solution to this problem was put forward by Hopkins and St John ([REF]; HSJ) that requires explicitly stating the hierarchical nature of character dependencies. This information is then used to encode the differences across each set of linked characters into just the character at the top of each hierarchy. We can start by stating these dependencies with a simple table.
 
@@ -786,7 +786,8 @@ stem.tip.dated.tree$node.label <- paste0("n", 1:stem.tip.dated.tree$Nnode)
 And we can create a new phylogenetic taxon groups object too.
 
 ```{r set phylogenetic taxon groups}
-phylo_taxon_groups <- lapply(taxon_groups, function(x) c(stem.tip.dated.tree$tip.label, stem.tip.dated.tree$node.label)[stem.tip.dated.tree$edge[Claddis::find_descendant_edges(n = Claddis::find_mrca(intersect(x, stem.tip.dated.tree$tip.label), stem.tip.dated.tree), tree = stem.tip.dated.tree), 2]])
+phylo_taxon_groups <- lapply(taxon_groups, function(x) c(stem.tip.dated.tree$tip.label[intersect(1:ape::Ntip(stem.tip.dated.tree), stem.tip.dated.tree$edge[Claddis::find_descendant_edges(n = Claddis::find_mrca(intersect(x, stem.tip.dated.tree$tip.label), stem.tip.dated.tree), tree = stem.tip.dated.tree), 2])], stem.tip.dated.tree$node.label[unique(stem.tip.dated.tree$edge[Claddis::find_descendant_edges(n = Claddis::find_mrca(intersect(x, stem.tip.dated.tree$tip.label), stem.tip.dated.tree), tree = stem.tip.dated.tree), 1] - ape::Ntip(stem.tip.dated.tree))]))
+phylo_taxon_groups$NonOrnithothoraces <- setdiff(c(stem.tip.dated.tree$tip.label, stem.tip.dated.tree$node.label), unlist(phylo_taxon_groups[c("Enantiornithes", "Ornithuromorpha")]))
 ```
 
 And we will only use the first 40 axes.
@@ -975,11 +976,173 @@ points(x = comparison_time_bins[1:(length(comparison_time_bins) - 1)] + diff(com
 points(x = comparison_time_bins[1:(length(comparison_time_bins) - 1)] + diff(comparison_time_bins) / 2, y = unlist(lapply(Ornithuromorpha.boot.tip.dated.tree.disparity.moc$disparity, function(x) mean(unlist(x)))), type = "l", col = "orange", lwd = 8)
 ```
 
+We can also repeat the PERMANOVA test before. First we can create new taxon groups.
 
+```{r make taxon groups with ancestors}
+taxon_groups_inc_ancestors <- list(NonOrnithothoracesIncAncestors = setdiff(rownames(stem.tip.dated.tree.pcoa.data), c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$node.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$node.label)), EnantiornithesIncAncestors = c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$node.label), OrnithuromorphaIncAncestors = c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$node.label))
+groups_inc_ancestors_as_factors <- as.factor(do.call(rbind, lapply(as.list(names(taxon_groups_inc_ancestors)), function(x) cbind(x, taxon_groups_inc_ancestors[[x]])))[, 1])
+names(groups_inc_ancestors_as_factors) <- unname(unlist(taxon_groups_inc_ancestors))
+groups_inc_ancestors_as_factors <- groups_inc_ancestors_as_factors[rownames(stem.tip.dated.tree.pcoa.data)]
+```
 
+Perform test.
 
+```{r perform adonis test with ancestors included}
+pairwise.adonis(stem.tip.dated.tree.pcoa.data, groups_inc_ancestors_as_factors, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
+```
 
+# Reanalysing by skeletal subregion
 
+We can also examine individual subregions of the skeleton.
+
+First we can define these as the character sets they contain.
+
+```{r define character subsets}
+skull.characters <- c(1:48, 262, 263, 267, 268, 275)
+axial.characters <- c(49:81, 269, 270)
+pectoral.characters <- c(82:120, 246:249, 251, 252, 271, 274, 276)
+forelimb.characters <- c(121:177, 250, 253, 265, 277:280)
+pelvic.characters <- c(178:198, 272, 273)
+hindlimb.characters <- c(199:243, 254:261, 264, 266)
+```
+
+And use these to make pruned versions of our cladistic matrix.
+
+```{r prune matrix by skeletal region}
+skull.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), skull.characters))
+axial.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), axial.characters))
+pectoral.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), pectoral.characters))
+forelimb.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), forelimb.characters))
+pelvic.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), pelvic.characters))
+hindlimb.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), hindlimb.characters))
+```
+
+And we can now ordinate the data.
+
+```{r ordinate character subregions}
+skull.pcoa.data <- Claddis::ordinate_cladistic_matrix(skull.stem.nexus.data, distance_metric = "mord")
+axial.pcoa.data <- Claddis::ordinate_cladistic_matrix(axial.stem.nexus.data, distance_metric = "mord")
+pectoral.pcoa.data <- Claddis::ordinate_cladistic_matrix(pectoral.stem.nexus.data, distance_metric = "mord")
+forelimb.pcoa.data <- Claddis::ordinate_cladistic_matrix(forelimb.stem.nexus.data, distance_metric = "mord")
+pelvic.pcoa.data <- Claddis::ordinate_cladistic_matrix(pelvic.stem.nexus.data, distance_metric = "mord")
+hindlimb.pcoa.data <- Claddis::ordinate_cladistic_matrix(hindlimb.stem.nexus.data, distance_metric = "mord")
+```
+
+(Note that many more taxa have to be removed for each subregion than for the total data set.)
+
+We can now convert thesd into dispRity objects, subsettng by time.
+
+```{r subset regional data by time bin}
+skull.chrono.dispRity <- dispRity::chrono.subsets(data = skull.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(skull.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(skull.pcoa.data$vectors), ])
+axial.chrono.dispRity <- dispRity::chrono.subsets(data = axial.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(axial.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(axial.pcoa.data$vectors), ])
+pectoral.chrono.dispRity <- dispRity::chrono.subsets(data = pectoral.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pectoral.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(pectoral.pcoa.data$vectors), ])
+forelimb.chrono.dispRity <- dispRity::chrono.subsets(data = forelimb.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(forelimb.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(forelimb.pcoa.data$vectors), ])
+pelvic.chrono.dispRity <- dispRity::chrono.subsets(data = pelvic.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pelvic.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(pelvic.pcoa.data$vectors), ])
+hindlimb.chrono.dispRity <- dispRity::chrono.subsets(data = hindlimb.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(hindlimb.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(hindlimb.pcoa.data$vectors), ])
+```
+
+Or by group.
+
+```{r subset regional data by group}
+skull.group.dispRity <- dispRity::custom.subsets(skull.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors))))
+axial.group.dispRity <- dispRity::custom.subsets(axial.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors))))
+pectoral.group.dispRity <- dispRity::custom.subsets(pectoral.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors))))
+forelimb.group.dispRity <- dispRity::custom.subsets(forelimb.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(forelimb.pcoa.data$vectors)), rownames(forelimb.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(forelimb.pcoa.data$vectors)), rownames(forelimb.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(forelimb.pcoa.data$vectors)), rownames(forelimb.pcoa.data$vectors))))
+pelvic.group.dispRity <- dispRity::custom.subsets(pelvic.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(pelvic.pcoa.data$vectors)), rownames(pelvic.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(pelvic.pcoa.data$vectors)), rownames(pelvic.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(pelvic.pcoa.data$vectors)), rownames(pelvic.pcoa.data$vectors))))
+hindlimb.group.dispRity <- dispRity::custom.subsets(hindlimb.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(hindlimb.pcoa.data$vectors)), rownames(hindlimb.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(hindlimb.pcoa.data$vectors)), rownames(hindlimb.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(hindlimb.pcoa.data$vectors)), rownames(hindlimb.pcoa.data$vectors))))
+```
+
+And bootstrap the data.
+
+```{r bootstrap regional data}
+skull.chrono.dispRity.booted <- dispRity::boot.matrix(skull.chrono.dispRity, bootstrap = 1000)
+axial.chrono.dispRity.booted <- dispRity::boot.matrix(axial.chrono.dispRity, bootstrap = 1000)
+pectoral.chrono.dispRity.booted <- dispRity::boot.matrix(pectoral.chrono.dispRity, bootstrap = 1000)
+forelimb.chrono.dispRity.booted <- dispRity::boot.matrix(forelimb.chrono.dispRity, bootstrap = 1000)
+pelvic.chrono.dispRity.booted <- dispRity::boot.matrix(pelvic.chrono.dispRity, bootstrap = 1000)
+hindlimb.chrono.dispRity.booted <- dispRity::boot.matrix(hindlimb.chrono.dispRity, bootstrap = 1000)
+skull.group.dispRity.booted <- dispRity::boot.matrix(skull.group.dispRity, bootstrap = 1000)
+axial.group.dispRity.booted <- dispRity::boot.matrix(axial.group.dispRity, bootstrap = 1000)
+pectoral.group.dispRity.booted <- dispRity::boot.matrix(pectoral.group.dispRity, bootstrap = 1000)
+forelimb.group.dispRity.booted <- dispRity::boot.matrix(forelimb.group.dispRity, bootstrap = 1000)
+pelvic.group.dispRity.booted <- dispRity::boot.matrix(pelvic.group.dispRity, bootstrap = 1000)
+hindlimb.group.dispRity.booted <- dispRity::boot.matrix(hindlimb.group.dispRity, bootstrap = 1000)
+```
+
+We can now plot time series, of sum of variances.
+
+```{r plot sum of variances over time by region}
+plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 25), xlab = "Time (Ma)", ylab = "Sum of Variances")
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pectoral.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[3])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(forelimb.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[4])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pelvic.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[5])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(hindlimb.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[6])
+legend(x = 170, y = 25, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "Pelvic", "Hindlimb"), fill = NULL, col = topo.colors(n = 6), border = "white", lty = 1, lwd = 4, pch = NULL, bg = "white")
+```
+
+Sum of ranges.
+
+```{r plot sum of ranges over time by region}
+plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 200), xlab = "Time (Ma)", ylab = "Sum of Ranges")
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pectoral.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[3])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(forelimb.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[4])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pelvic.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[5])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(hindlimb.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[6])
+legend(x = 170, y = 200, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "Pelvic", "Hindlimb"), fill = NULL, col = topo.colors(n = 6), border = "white", lty = 1, lwd = 4, pch = NULL, bg = "white")
+```
+
+Or centroid medians.
+
+```{r plot centroid medians over time by region}
+plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 6), xlab = "Time (Ma)", ylab = "Median Centroid")
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pectoral.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[3])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(forelimb.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[4])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(pelvic.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[5])
+points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(hindlimb.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[6])
+legend(x = 170, y = 6, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "Pelvic", "Hindlimb"), fill = NULL, col = topo.colors(n = 6), border = "white", lty = 1, lwd = 4, pch = NULL, bg = "white")
+```
+
+And now the same by groups, first sum of variances.
+
+```{r plot sum of variances in each group by region}
+par(mfrow = c(2, 3))
+boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Sum of Variances")
+boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Sum of Variances")
+boxplot(lapply(dispRity::dispRity(pectoral.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Pectoral", ylab = "Sum of Variances")
+boxplot(lapply(dispRity::dispRity(forelimb.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Forelimb", ylab = "Sum of Variances")
+boxplot(lapply(dispRity::dispRity(pelvic.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Pelvic", ylab = "Sum of Variances")
+boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Hindlimb", ylab = "Sum of Variances")
+```
+
+Sum of ranges.
+
+```{r plot sum of ranges in each group by region}
+par(mfrow = c(2, 3))
+boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Sum of Ranges")
+boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Sum of Ranges")
+boxplot(lapply(dispRity::dispRity(pectoral.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Pectoral", ylab = "Sum of Ranges")
+boxplot(lapply(dispRity::dispRity(forelimb.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Forelimb", ylab = "Sum of Ranges")
+boxplot(lapply(dispRity::dispRity(pelvic.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Pelvic", ylab = "Sum of Ranges")
+boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Hindlimb", ylab = "Sum of Ranges")
+```
+
+Centroid medians.
+
+```{r plot centroid medians in each group by region}
+par(mfrow = c(2, 3))
+boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Centroid Medians")
+boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Centroid Medians")
+boxplot(lapply(dispRity::dispRity(pectoral.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Pectoral", ylab = "Centroid Medians")
+boxplot(lapply(dispRity::dispRity(forelimb.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Forelimb", ylab = "Centroid Medians")
+boxplot(lapply(dispRity::dispRity(pelvic.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Pelvic", ylab = "Centroid Medians")
+boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Hindlimb", ylab = "Centroid Medians")
+```
 
 
 
@@ -991,31 +1154,6 @@ rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs 
 
 
 
-
-
-## r permanova test with ancestal nodes
-
-#permanova test among the three avian groups with ancestral nodes considered:
-nodes.tips.En.Or.groups <- c(nodes.tips.En.group, nodes.tips.Or.group)
-phylo.En.Or.pcoa <- pcoa.data2[nodes.tips.En.Or.groups, ]
-##load text file that contain the grouping informtion with taxa and internal nodes
-phylo.En.Or.groups <- read.delim("nodes.tips.aves.group.txt", sep = "\t", stringsAsFactors = FALSE)
-nodes.tips.En.Or.groups <- phylo.En.Or.groups[which(phylo.En.Or.groups[, 2] %in% c("Enantiornithes", "Ornithuromorpha")), ]
-phylo.stem.pairwise.test <- pairwise.adonis(pcoa.data2, phylo.En.Or.groups$Group, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
-phylo.stem.pairwise.test
-
-# For disparity analyses of divided anatomical subregions
-##First, we divided the discrete character matrix:
-##skull.character <- c(1:48, 262, 263, 267, 268, 275)
-##axial.character <- c(49:81, 269, 270)
-##pectoral.character <- c(82:120, 246:249, 251, 252, 271, 274, 276)
-##forelimb.character <- c(121:177, 250, 253, 265, 277:280)
-##pelvis.character <- c(178:198, 272, 273)
-##hindlimb.character <- c(199:243, 254:261, 264, 266)
-
-## To be noticed, there are two characters (ch.244, ch.245) that describe feathers and cannot be assigned to any subregion, and shall be removed. Here, we choose the pectoral region to show how it works:
-##nexus.data <- Claddis::prune_cladistic_matrix(CladisticMatrix = nexus.data, characters2prune = c(skull.character, axial.character, forelimb.character, pelvis.character, hindlimb.character, 244, 245))
-##Then, we can repeat aforementioned procedure to conduct disparity analyses of the pectoral girdle.
 
 
 
@@ -1197,3 +1335,5 @@ paleotree::charExhaustPlot(exhaustion_info = full.exhaustion.results, changesTyp
 paleotree::charExhaustPlot(exhaustion_info = Enantiornithes.exhaustion.results, changesType = "charAlt", main = "Enantiornithes")
 paleotree::charExhaustPlot(exhaustion_info = Ornithuromorpha.exhaustion.results, changesType = "charAlt", main = "Ornithuromorpha")
 ```
+
+# Bibliography
