@@ -33,13 +33,13 @@ Test reference @R-base.
 
 Before we begin we need to make sure the functions used in this file are installed in R by getting the packages from CRAN.
 
-```{r install required CRAN packages, message=FALSE}
+```{r install required CRAN packages, message=FALSE, warning=FALSE}
 install.packages(c("phytools", "paleotree", "devtools", "maps", "dispRity", "Claddis", "strap", "vegan", "geomorph", "devtools", "gtools", "knitr", "MASS", "phylobase", "magrittr", "kableExtra", "RColorBrewer"), dependencies = TRUE)
 ```
 
 We also require some newer functions from the latest versions of the Claddis and dispRity packages so we will install these directly from GitHub.
 
-```{r install required GitHub packages, message=FALSE}
+```{r install required GitHub packages, message=FALSE, warning=FALSE}
 devtools::install_github("graemetlloyd/Claddis")
 devtools::install_github("TGuillerme/dispRity", ref = "release")
 ```
@@ -48,6 +48,7 @@ We can then load some libraries into memory, although most functions will be cal
 
 ```{r load R librar(ies) into memory}
 library(dispRity)
+library(stringr)
 ```
 
 # Loading data
@@ -1071,7 +1072,7 @@ hindlimb.group.dispRity.booted <- dispRity::boot.matrix(hindlimb.group.dispRity,
 
 We can now plot time series, of sum of variances.
 
-```{r plot sum of variances over time by region}
+```{r plot sum of variances over time by region, fig.height=10, fig.width=10, fig.align='center'}
 plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 25), xlab = "Time (Ma)", ylab = "Sum of Variances")
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(sum, variances))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
@@ -1084,7 +1085,7 @@ legend(x = 170, y = 25, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "Pe
 
 Sum of ranges.
 
-```{r plot sum of ranges over time by region}
+```{r plot sum of ranges over time by region, fig.height=10, fig.width=10, fig.align='center'}
 plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 200), xlab = "Time (Ma)", ylab = "Sum of Ranges")
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
@@ -1097,7 +1098,7 @@ legend(x = 170, y = 200, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "P
 
 Or centroid medians.
 
-```{r plot centroid medians over time by region}
+```{r plot centroid medians over time by region, fig.height=10, fig.width=10, fig.align='center'}
 plot(x = 0, y = 0, type = "n", xlim = c(170, 66), ylim = c(0, 6), xlab = "Time (Ma)", ylab = "Median Centroid")
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(skull.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[1])
 points(x = time.bins[1:(length(time.bins) - 1)] + (diff(time.bins) / 2), y = unlist(lapply(dispRity::dispRity(axial.chrono.dispRity.booted, metric = c(median, centroids))$disparity, function(x) mean(unlist(x)))), type = "l", lwd = 4, col = topo.colors(n = 6)[2])
@@ -1110,7 +1111,7 @@ legend(x = 170, y = 6, legend = c("Skull", "Axial", "Pectoral", "Forelimb", "Pel
 
 And now the same by groups, first sum of variances.
 
-```{r plot sum of variances in each group by region}
+```{r plot sum of variances in each group by region, fig.height=10, fig.width=10, fig.align='center'}
 par(mfrow = c(2, 3))
 boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Sum of Variances")
 boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(sum, variances))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Sum of Variances")
@@ -1122,7 +1123,7 @@ boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(sum
 
 Sum of ranges.
 
-```{r plot sum of ranges in each group by region}
+```{r plot sum of ranges in each group by region, fig.height=10, fig.width=10, fig.align='center'}
 par(mfrow = c(2, 3))
 boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Sum of Ranges")
 boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(sum, ranges))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Sum of Ranges")
@@ -1134,7 +1135,7 @@ boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(sum
 
 Centroid medians.
 
-```{r plot centroid medians in each group by region}
+```{r plot centroid medians in each group by region, fig.height=10, fig.width=10, fig.align='center'}
 par(mfrow = c(2, 3))
 boxplot(lapply(dispRity::dispRity(skull.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Skull", ylab = "Centroid Medians")
 boxplot(lapply(dispRity::dispRity(axial.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Axial", ylab = "Centroid Medians")
@@ -1144,92 +1145,79 @@ boxplot(lapply(dispRity::dispRity(pelvic.group.dispRity.booted, metric = c(media
 boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Hindlimb", ylab = "Centroid Medians")
 ```
 
+# Effect of body mass on morphospace
 
+Brougham and Campione REF showed that body size can strongly influence discrete character morphospaces in dinosaurs and we can use the same technique to explore whether a similar effect is seen in birds.
 
+First we need to import body mass estimates for our taxa (NB: these are not available for all species).
 
-##############
-
-rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
-
-
-
-
-
-
-
-### r Analyses of effect of body mass on discrete character morphospace
-
-#Load body mass data (mass.csv)
-
-
+```{r import body mass data}
 mass <- matrix(data = c(143.47, 1084.33, 507.74, 825.25, 1982.61, 358.95, 138.4, 237.09, 173.41, 420.61, 112.49, 56.29, 81.42, 57.01, 88.85, 116.95, 43.01, 102.83, 524.68, 347.78, 111.39, 488.41, 188.18, 63.78, 22.69, 40.02, 38.3, 238.84, 281.34, 221.68, 220.01, 170.54, 40.61, 345.57, 143.47, 242.37, 86.01, 15.04, 186.67, 319.74, 547.8, 1044.63, 1040.28, 43.01, 153.95, 93.7, 62.23, 109.21, 91.74, 3748.94, 350, 672.79, 220.01, 231.88, 153.95, 19523.12, 6372.23, 11741.66, 821.48, 98.7, 443.38, 35.52, 1617.31, 679.46, 727.28, 152.62, 339, 602.09, 269.84, 92.71, 2642.31), ncol = 1, dimnames = list(c("Archaeopteryx", "Jeholornis", "Jinguofortis", "Chongmingia", "Sapeornis", "Confuciusornis_sanctus", "Changchengornis_hengdaoziensis", "Eoconfuciusornis_zhengi", "Confuciusornis_dui", "Yangavis", "Boluochia", "Concornis", "Eoalulavis", "Cathayornis", "Eoenantiornis", "Gobipteryx", "Longipteryx", "Longirostravis", "Neuquenornis", "Pengornis", "Eopengornis", "Chiappeavis", "Parapengornis", "Protopteryx", "Rapaxavis", "Shanweiniao", "Vescornis", "Piscivorenantiornis", "Linyiornis", "Sulcavis", "Bohaiornis", "Longusunguis", "Shenqiornis", "Zhouornis", "Parabohaiornis", "Fortunguavis", "Pterygornis", "Cruralispennia", "Monoenantiornis", "Archaeorhynchus", "Schizooura", "Bellulornis", "Jianchangornis", "Longicrusavis", "Apsaravis", "Hongshanornis", "Archaeornithura", "Parahongshanornis", "Tianyuornis", "Patagopteryx", "Yixianornis", "Piscivoravis", "Iteravis", "Gansus", "Ichthyornis", "Hesperornis", "Baptornis_advenus", "Baptornis_varneri", "Vegavis", "Shangyang", "Mengciusornis", "Mirusavis", "Yanornis", "Similiyanornis", "Abitusavis", "Eogranivora", "Gretcheniao", "Xinghaiornis", "Dingavis", "Qiliania", "Vorona"), "mass"))
 mass <- as.data.frame(mass)
 mass$mass <- log10(as.numeric(mass$mass))
+```
 
-# Reload phylogeny, discrete matrix, tip-dates
-tip.ages <- read.table("tipages.txt", sep = ",", header = TRUE, row.names = 1)
-mpts <- read.nexus("MPTs.nex")
-nex_filenames <- list.files(pattern = "*.nex$")
-for(nex_filename in nex_filenames) matrix <- Claddis::read_nexus_matrix("matrix.nex")
-sc.tree <- consensus(mpts)
-tree.data <- multi2di(sc.tree)
-tree<-timePaleoPhy(tree.data, tip.ages, type = "mbl", vartime = 1)
-#remove taxa without body mass
-taxa.to.remove <- c("Gallus", "Anas", "Dromaeosauridae", "Elsornis", "Eocathayornis", "Songlingornis", "Parahesperornis", "Enaliornis", "Dunhuangia")
-matrix <- Claddis::prune_cladistic_matrix(CladisticMatrix = matrix,taxa2prune = taxa.to.remove)
+Next we can generate a PCoA space.
 
-# The following analyses about Pcoa-bodymass are based on the script from Brougham & Campione (2020), and interested readers please see this original study.
+```{r ordinate data for mass analyses}
+mass.pcoa.data <- Claddis::ordinate_cladistic_matrix(nexus.data)$vectors
+```
 
-distances <- Claddis::MorphDistMatrix(matrix)
-max_dists <- distances$DistanceMatrix
-pcoa_result <- ape::pcoa(max_dists, correction = "cailliez")
-pcoa_bm <- merge(mass, pcoa_result$vectors.cor, by.x = 0, by.y = 0)
-rownames(pcoa_bm) <- pcoa_bm$Row.names
-pcoa_bm$Row.names <- NULL
-pcoa_bm$group <- NULL
-pcoa_bm <- pcoa_bm[rownames(pcoa_bm) %in% tree$tip.label, ]
-pcoa_bm <- pcoa_bm[!is.na(pcoa_bm$mass), ]
-tree <- ape::drop.tip(tree, tree$tip.label[!tree$tip.label %in% rownames(pcoa_bm)])
+Before we go further we should isolate our data to just the taxa we can use (those possessing both all calculable pairwise distances and a mass estimate).
 
-corphy_bm_pco1 <- ape::corphylo(pcoa_bm[c(1, 2)], phy = tree)
-pco1_rlm <- MASS::rlm(Axis.1 ~ mass, pcoa_bm, method = "MM", maxit = 1000)
-pco1_rlm <- lm(Axis.1 ~ mass, pco1_rlm$model, weights = pco1_rlm$w)
-pco_n_pgls <- sapply(2:ncol(pcoa_bm), function(idx) {geomorph::procD.pgls(pco ~ mass, tree, data = list(pco = pcoa_bm[, idx], mass = pcoa_bm$mass))})
+```{r isolate mass and pcoa names}
+mass.names <- intersect(rownames(mass.pcoa.data), rownames(mass))
+```
 
-bm_include <- rownames(pcoa_bm[!is.na(pcoa_bm$mass), ])
-trim_dist_matrix <- max_dists[bm_include, bm_include]
-dist_bm <- dist(mass[bm_include, "mass"])
-attr(dist_bm, "Labels") <- bm_include
-trim_dist_matrix <- dist(trim_dist_matrix)
-mantel_result <- ade4::mantel.rtest(trim_dist_matrix, dist_bm, nrepet = 9999)
+And make objects we can use with just these taxa present.
 
-pco_all_pgls <- geomorph::procD.pgls(pcoa_bm[, -1] ~ pcoa_bm[, 1], tree)
-dists_lm <- lm(dist_bm ~ trim_dist_matrix)
+```{r make mass versions of objects}
+mass <- mass[mass.names, , drop = FALSE]
+mass.pcoa.data <- mass.pcoa.data[mass.names, ]
+mass.tip.ages <- tip.ages[mass.names, ]
+mass.tip.dated.tree <- Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, mass.names))
+mass.morph.distances <- as.dist(Claddis::calculate_morphological_distances(nexus.data)$distance_matrix[mass.names, mass.names])
+mass.mass.distances <- dist(mass[mass.names, "mass"])
+attr(mass.mass.distances, "Labels") <- mass.names
+```
+
+Now we can perform various comparisons of mass and morphological variance.
+
+```{r perform series of mass tests}
+mass.corphy.pco1 <- ape::corphylo(cbind(mass[mass.names, ], mass.pcoa.data[mass.names, 1]), phy = mass.tip.dated.tree)
+mass.rlm.pco1 <- MASS::rlm(mass.pcoa.data[mass.names, 1] ~ mass[mass.names, ], as.data.frame(mass.pcoa.data), method = "MM", maxit = 1000)
+mass.rlm.pco1 <- lm(mass.pcoa.data[mass.names, 1] ~ mass[mass.names, ], mass.rlm.pco1$model, weights = mass.rlm.pco1$w)
+mass.n.pgls <- sapply(1:ncol(mass.pcoa.data), function(idx) {geomorph::procD.pgls(pco ~ mass, mass.tip.dated.tree, data = list(pco = mass.pcoa.data[, idx], mass = mass[mass.names, ]))})
+mass.all.pgls <- geomorph::procD.pgls(mass.pcoa.data ~ mass[mass.names, ], mass.tip.dated.tree)
+mass.mantel <- ade4::mantel.rtest(mass.morph.distances, mass.mass.distances, nrepet = 9999)
+mass.lm.distances <- lm(mass.morph.distances ~ mass.mass.distances)
+```
+
+We can then compile these results in the Campione and Broughma style [REF].
+
+```{r compile mass results}
 all_results <- c()
-results <- list(pcoa = pcoa_bm, corphy_bm_pco1 = corphy_bm_pco1, pco1_rlm = pco1_rlm, pco1_pv = pcoa_result$values$Rel_corr_eig[1], pco_n_pgls = pco_n_pgls, pco_all_pgls = pco_all_pgls, mantel = mantel_result, dists_lm = dists_lm, fn = nex_filename)
-
+results <- list(pcoa = mass.pcoa.data, corphy_bm_pco1 = mass.corphy.pco1, pco1_rlm = mass.rlm.pco1, pco1_pv = Claddis::ordinate_cladistic_matrix(nexus.data)$values$Rel_corr_eig[1], pco_n_pgls = mass.n.pgls, pco_all_pgls = mass.all.pgls, mantel = mass.mantel, dists_lm = mass.lm.distances, fn = "matrix.nex")
 if (!length(all_results)) {
   all_results <- list(results)
 } else {
   all_results[length(all_results) + 1] <- list(results)
 }
-
-
+outgroups <- list("matrix.nex" = c("Archaeopteryx"))
+all_results <- lapply(all_results, function(x) {x$outgroups <- outgroups[x$fn][[1]]; x})
+```
 
 ### r effect of body mass on morphospace
 
-outgroups <- list("matrix.nex" = c("Archaeopteryx"))
-all_results <- lapply(all_results, function (x) {x$outgroups <- outgroups[x$fn][[1]]
-return(x)})
-
+```{r BLOCK}
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 stat_table <- data.frame(row.names = c("df", "% PCo1 var.", "Phy. Corr.", "Slope.1", "r2.1", "Slope.2", "r2.2", "Statistic", "r2.3", "pco.all.aov r2"))
 
 idx <- 1
 for (result in all_results) {
   plot_bg <- ifelse(rownames(result$pcoa) %in% result$outgroups, "white", "black")
-  plot(result$pcoa$Axis.1 ~ result$pcoa$mass, pch = 21, cex = 0.8, xlab = "", ylab = "", frame.plot = FALSE, col = "black", bg = plot_bg)
-  clip(min(result$pcoa$mass, na.rm = TRUE), max(result$pcoa$mass, na.rm = TRUE), min(result$pcoa$Axis.1), max(result$pcoa$Axis.1))
+  plot(result$pcoa[, 1] ~ mass[mass.names, ], pch = 21, cex = 0.8, xlab = "", ylab = "", frame.plot = FALSE, col = "black", bg = plot_bg)
+  clip(min(mass), max(mass), min(result$pcoa[, 1]), max(result$pcoa[, 1]))
   abline(result$pco1_rlm, col = "red")
   title(chartr("123456789", "abcdefghi", as.character(idx)), adj = 0.05, line = -0.5)
   idx <- idx + 1
@@ -1255,6 +1243,9 @@ colnames(stat_table)[c(4, 6)] <- "Slope"
 knitr::kable(stat_table, caption = "The results of the robust regression and multivariate phylogenetic GLS for PCo1, and Mantel tests and multivariate phylogenetic GLS of all PCo axes, for discrete character-taxon matrices of Mesozoic birds.", booktabs = TRUE) %>% kableExtra::kable_styling(latex_options = c("striped", "scale_down"), stripe_color = "lightergray") %>% kableExtra::add_header_above(c(" " = 4, "Robust Linear Regression" = 2, "Phylogenetic GLS" = 2, "Mantel test" = 2, "Phylogenetic GLS" = 1))
 
 
+
+# The following analyses about Pcoa-bodymass are based on the script from Brougham & Campione (2020), and interested readers please see this original study.
+
 ### r effect of body mass on morphospace 2
 
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
@@ -1262,7 +1253,7 @@ idx <- 1
 for(result in all_results) {
   stdv <- qnorm(1 - 0.05 / 2) / sqrt(ncol(result$pco_n_pgls))
   coeffs <- apply(result$pco_n_pgls, 2, function (n) {n$aov.table$Rsq[1]})
-  barplot(coeffs, col = gray(0.6))
+  barplot(coeffs, col = gray(0.6), ylim = c(0, 1))
   clip(0, ncol(result$pco_n_pgls) * 1.2, min(coeffs), max(coeffs))
   abline(h = stdv, col = "red")
   title(chartr("123456789", "abcdefghi", as.character(idx)), adj = 0.05, line = 0.5)
@@ -1294,28 +1285,23 @@ par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 idx <- 1
 palette <- RColorBrewer::brewer.pal(8, "Set1")
 for (result in all_results) {
-  dens <- MASS::kde2d(result$dists_lm$model$trim_dist_matrix, result$dists_lm$model$dist_bm, n = 100)
+  dens <- MASS::kde2d(result$dists_lm$model$mass.morph.distances, result$dists_lm$model$mass.mass.distances, n = 100)
   myPal <- colorRampPalette(c("white", palette[c(2, 6, 5, 1)]))
-  plot(result$dists_lm$model$trim_dist_matrix, result$dists_lm$model$dist_bm, type = "n", frame.plot = FALSE)
+  plot(result$dists_lm$model$mass.morph.distances, result$dists_lm$model$mass.mass.distances, type = "n", frame.plot = FALSE)
   image(dens, col = myPal(256), add = TRUE)
   title(chartr("123456789", "abcdefghi", as.character(idx)), adj = 0.05, line = -0.5)
-  clip(min(result$dists_lm$model$trim_dist_matrix), max(result$dists_lm$model$trim_dist_matrix), min(result$dists_lm$model$dist_bm), max(result$dists_lm$model$dist_bm))
+  clip(min(result$dists_lm$model$mass.morph.distances), max(result$dists_lm$model$mass.morph.distances), min(result$dists_lm$model$mass.mass.distances), max(result$dists_lm$model$mass.mass.distances))
   abline(result$dists_lm)
   idx <- idx + 1
 }
 mtext('Discrete character distances', side = 1, outer = TRUE, line = 2)
 mtext('Body mass distances', side = 2, outer = TRUE, line = 2)
+```
 
 
+##############
 
-
-
-
-#######
-
-
-
-
+rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
 
 # Character exhaustion
 
