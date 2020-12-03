@@ -19,10 +19,6 @@ fontsize: 12pt
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### TO DOS:
-### PHYLO DISTANCES AS CONTROL
-### ADD REFERENCES
-
 # Introduction
 
 This R code performs comparative phylogenetic analysis of the pattern and mode of morphological disparity of Mesozoic birds. Varing methods are used to scaled the phylogeny, including the minimal branch length (mbl), equal and tip-dated methods. 1) a distance matrix was constructed by calculating a morphological distance between each pair of taxa using the MorphDistMatrix function. We chose the Maximum Observable Rescaled Distance (MORD) and the Generalised Euclidean Distance (GED) as the distance metrics, because they are more suitable to datasets containing fossils; the distance metrics were also calculated using the ??HSJ?? approach to account for inapplicable characters. All these different approaches can be applied by changing the Arguments in MorphDistMatrix () and Claddis::ordinate_cladistic_matrix (). These different methods produced essentially same results, and thus the mbl-scaled and MORD distance methods were detailed bellow, and corresponding results were present in figures. 2) First, we explore the pattern and mode of disparity of Mesozoic birds as a whole using three metrics (sum of variances and ranges, and median distance from centroids), and then conducted intergroup comparison; 3) A nonparametric multivariate analysis of variance (PERMANOVA) test was used to test whether the three avian groups were statistically seprated in morphospace; 4) we subdivided the character matrix into six anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb), and conducted aforementioned comparative analyses to explore whether these subregions demonstrate different patterns; 5) finally, we performed the character exhaustion analyses.
@@ -1207,12 +1203,11 @@ outgroups <- list("matrix.nex" = c("Archaeopteryx"))
 all_results <- lapply(all_results, function(x) {x$outgroups <- outgroups[x$fn][[1]]; x})
 ```
 
-### r effect of body mass on morphospace
+We can better understand the results through visualisations. Forstly a simpel correlation of body mass and PCo 1.
 
-```{r BLOCK}
+```{r plot body mass vs PCoA 1, fig.height=10, fig.width=10, fig.align='center'}
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 stat_table <- data.frame(row.names = c("df", "% PCo1 var.", "Phy. Corr.", "Slope.1", "r2.1", "Slope.2", "r2.2", "Statistic", "r2.3", "pco.all.aov r2"))
-
 idx <- 1
 for (result in all_results) {
   plot_bg <- ifelse(rownames(result$pcoa) %in% result$outgroups, "white", "black")
@@ -1228,26 +1223,23 @@ for (result in all_results) {
   pco_all_pgls_stars <- gtools::stars.pval(result$pco_all_pgls$aov.table$`Pr(>F)`[1])[1]
   stat_table[result$fn] = c(result$pco1_rlm$df.residual, signif(result$pco1_pv * 100, 2), signif(result$corphy_bm_pco1$cor.matrix[2], 2), paste(signif(result$pco1_rlm$coefficients[2], 2), pco1_rlm_stars), signif(pco1_r2, 2), paste(signif(result$pco_n_pgls[,1]$pgls.coefficients[2], 2), pco1_pgls_stars), signif(result$pco_n_pgls[,1]$aov.table$Rsq[1], 2), paste(signif(result$mantel$obs, 2), mantel_stars), signif(result$mantel$obs**2, 2), paste(signif(result$pco_all_pgls$aov.table$Rsq[1], 2), pco_all_pgls_stars))
 }
-
 mtext('Log body mass (kg)', side = 1, outer = TRUE, line = 2)
 mtext('PCo1', side = 2, outer = TRUE, line = 2)
+```
 
+We can also compile our results ina  stats table.
 
-### r test of effect of body mass on morphospace
-
+```{r compile body mass analyses}
 names(stat_table) <- c("Mesozoic birds")
 stat_table <- t(stat_table)
 colnames(stat_table)[c(5, 7, 9, 10)] <- "r2"
 colnames(stat_table)[c(4, 6)] <- "Slope"
-
 knitr::kable(stat_table, caption = "The results of the robust regression and multivariate phylogenetic GLS for PCo1, and Mantel tests and multivariate phylogenetic GLS of all PCo axes, for discrete character-taxon matrices of Mesozoic birds.", booktabs = TRUE) %>% kableExtra::kable_styling(latex_options = c("striped", "scale_down"), stripe_color = "lightergray") %>% kableExtra::add_header_above(c(" " = 4, "Robust Linear Regression" = 2, "Phylogenetic GLS" = 2, "Mantel test" = 2, "Phylogenetic GLS" = 1))
+```
 
+We can make a barplot of correlation coefficients of body mass and each PCoA axis (accounting for phylogeny).
 
-
-# The following analyses about Pcoa-bodymass are based on the script from Brougham & Campione (2020), and interested readers please see this original study.
-
-### r effect of body mass on morphospace 2
-
+```{r plot body mass vs PCoA axis correlation coefficients, fig.height=10, fig.width=10, fig.align='center'}
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 idx <- 1
 for(result in all_results) {
@@ -1261,10 +1253,11 @@ for(result in all_results) {
 }
 mtext('PCoA Axis', side = 1, outer = TRUE, line = 2)
 mtext('pGLS correlation coefficient', side = 2, outer = TRUE, line = 2)
+```
 
+We can use our Mantel results to test the signififcance of a mass differences and morphological distances correlation.
 
-### r effect of body mass on morphospace 3
-
+```{r plot mass differences vs morphological distances Mantel results, fig.height=10, fig.width=10, fig.align='center'}
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 idx <- 1
 for (result in all_results) {
@@ -1277,10 +1270,11 @@ for (result in all_results) {
 }
 mtext('Distance', side = 1, outer = TRUE, line = 2)
 mtext('Frequency', side = 2, outer = TRUE, line = 2)
+```
 
+We can also make a plot of morpholoigcal distances versus mass differences.
 
-### r effect of body mass on morphospace 4
-
+```{r plot mass differences vs morphological distances, fig.height=10, fig.width=10, fig.align='center'}
 par(mai = c(0.2, 0.2, 0.2, 0.2), oma = c(4, 4, 0, 0))
 idx <- 1
 palette <- RColorBrewer::brewer.pal(8, "Set1")
@@ -1298,11 +1292,6 @@ mtext('Discrete character distances', side = 1, outer = TRUE, line = 2)
 mtext('Body mass distances', side = 2, outer = TRUE, line = 2)
 ```
 
-
-##############
-
-rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
-
 # Character exhaustion
 
 We can also calculate character exhaustion values for the full data set and the Enantiornithes and Ornithuromorpha subsets. Note that polymorphisms and uncertainties are not allowed by the function so these are replaced with missing values.
@@ -1315,11 +1304,122 @@ Ornithuromorpha.exhaustion.results <- paleotree::accioExhaustionCurve(phyloTree 
 
 And visualise them as exhaustion curves.
 
-```{r exhaustion curves, fig.height=10, fig.width=10, fig.align='center'}
+```{r plot exhaustion curves, fig.height=10, fig.width=10, fig.align='center'}
 par(mfrow = c(1, 3))
 paleotree::charExhaustPlot(exhaustion_info = full.exhaustion.results, changesType = "charAlt", main = "All taxa")
 paleotree::charExhaustPlot(exhaustion_info = Enantiornithes.exhaustion.results, changesType = "charAlt", main = "Enantiornithes")
 paleotree::charExhaustPlot(exhaustion_info = Ornithuromorpha.exhaustion.results, changesType = "charAlt", main = "Ornithuromorpha")
 ```
+
+# Testing for phylogenetic correlation
+
+A potential concern is that our morphological disparity results merely reflect the result of phylogenetic "disparity" between species.
+
+To explore this we can begin by looking at the phylogenetic distances (in millions of years) between our species.
+
+```{r calculate phylogenetic distances and ordination of those distances}
+phylo.distances <- ape::cophenetic.phylo(Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pcoa.data))))
+phylo.pcoa.data <- ape::pcoa(phylo.distances, correction = "cailliez")$vectors.cor[rownames(pcoa.data), ]
+morph.distances <- Claddis::calculate_morphological_distances(nexus.data)$distance_matrix[rownames(pcoa.data), rownames(pcoa.data)]
+morph.pcoa.data <- ape::pcoa(morph.distances, correction = "cailliez")$vectors.cor[rownames(pcoa.data), ]
+```
+
+A simple bivariate plot reveals the issue: our distances seem correlated.
+
+```{r plot phylogenetic vs morphological distances, fig.height=10, fig.width=10, fig.align='center'}
+plot(phylo.distances, morph.distances, log = "x", pch = 20, xlab = "Phylogenetic distance (Ma)", ylab = "Morphological distance (arcsine square root of MORD)")
+```
+
+We also see similar mean paiwrise distances by group...
+
+```{r phylogenetic mean pariwise distances by group}
+Claddis::calculate_MPD(list(distance_matrix = morph.distances), taxon_groups)
+Claddis::calculate_MPD(list(distance_matrix = phylo.distances), taxon_groups)
+```
+
+...or time bin.
+
+```{r phylogenetic mean pairwise distances by time bin}
+Claddis::calculate_MPD(list(distance_matrix = morph.distances), taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
+Claddis::calculate_MPD(list(distance_matrix = phylo.distances), taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
+```
+
+We can also build dispRity objects as before, for both time bins and groups.
+
+```{r build phylogenetic and morphological dispRity objects}
+morph.group.disprity <- dispRity::custom.subsets(morph.pcoa.data, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(morph.pcoa.data)), rownames(morph.pcoa.data)), Enantiornithes = match(intersect(Enantiornithes, rownames(morph.pcoa.data)), rownames(morph.pcoa.data)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(morph.pcoa.data)), rownames(morph.pcoa.data))))
+phylo.group.disprity <- dispRity::custom.subsets(phylo.pcoa.data, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data)), Enantiornithes = match(intersect(Enantiornithes, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data))))
+morph.chrono.disprity <- dispRity::chrono.subsets(data = morph.pcoa.data, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pcoa.data))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data)
+phylo.chrono.disprity <- dispRity::chrono.subsets(data = phylo.pcoa.data, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pcoa.data))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data)
+```
+
+And bootstrap them.
+
+```{r bootstrap phylogenetic and morphological dispRity objects}
+morph.group.disprity.boot <- dispRity::boot.matrix(morph.group.disprity, bootstrap = 1000)
+phylo.group.disprity.boot <- dispRity::boot.matrix(phylo.group.disprity, bootstrap = 1000)
+morph.chrono.disprity.boot <- dispRity::boot.matrix(morph.chrono.disprity, bootstrap = 1000)
+phylo.chrono.disprity.boot <- dispRity::boot.matrix(phylo.chrono.disprity, bootstrap = 1000)
+```
+
+And calculate our normal suite of disparity metrics.
+
+```{r calculate phylogenetic and morphological disparity metrics}
+morph.group.disprity.boot.sov <- dispRity::dispRity(morph.group.disprity.boot, metric = c(sum, variances))
+phylo.group.disprity.boot.sov <- dispRity::dispRity(phylo.group.disprity.boot, metric = c(sum, variances))
+morph.chrono.disprity.boot.sov <- dispRity::dispRity(morph.chrono.disprity.boot, metric = c(sum, variances))
+phylo.chrono.disprity.boot.sov <- dispRity::dispRity(phylo.chrono.disprity.boot, metric = c(sum, variances))
+morph.group.disprity.boot.sor <- dispRity::dispRity(morph.group.disprity.boot, metric = c(sum, ranges))
+phylo.group.disprity.boot.sor <- dispRity::dispRity(phylo.group.disprity.boot, metric = c(sum, ranges))
+morph.chrono.disprity.boot.sor <- dispRity::dispRity(morph.chrono.disprity.boot, metric = c(sum, ranges))
+phylo.chrono.disprity.boot.sor <- dispRity::dispRity(phylo.chrono.disprity.boot, metric = c(sum, ranges))
+morph.group.disprity.boot.moc <- dispRity::dispRity(morph.group.disprity.boot, metric = c(median, centroids))
+phylo.group.disprity.boot.moc <- dispRity::dispRity(phylo.group.disprity.boot, metric = c(median, centroids))
+morph.chrono.disprity.boot.moc <- dispRity::dispRity(morph.chrono.disprity.boot, metric = c(median, centroids))
+phylo.chrono.disprity.boot.moc <- dispRity::dispRity(phylo.chrono.disprity.boot, metric = c(median, centroids))
+```
+
+And plot our results. First sum of variance.
+
+```{r plot phylogenetic vs morphological sum of variances, fig.height=10, fig.width=10, fig.align='center'}
+par(mfrow = c(2, 2))
+plot(morph.group.disprity.boot.sov, main = "Morphology", ylab = "Sum of Variance")
+plot(morph.chrono.disprity.boot.sov, main = "Morphology", ylab = "Sum of Variance")
+plot(phylo.group.disprity.boot.sov, main = "Phylogeny", ylab = "Sum of Variance")
+plot(phylo.chrono.disprity.boot.sov, main = "Phylogeny", ylab = "Sum of Variance")
+```
+
+Sum of ranges.
+
+```{r plot phylogenetic vs morphological sum of ranges, fig.height=10, fig.width=10, fig.align='center'}
+par(mfrow = c(2, 2))
+plot(morph.group.disprity.boot.sor, main = "Morphology", ylab = "Sum of Ranges")
+plot(morph.chrono.disprity.boot.sor, main = "Morphology", ylab = "Sum of Ranges")
+plot(phylo.group.disprity.boot.sor, main = "Phylogeny", ylab = "Sum of Ranges")
+plot(phylo.chrono.disprity.boot.sor, main = "Phylogeny", ylab = "Sum of Ranges")
+```
+
+And centroid medians.
+
+```{r plot phylogenetic vs morphological centroid medians, fig.height=10, fig.width=10, fig.align='center'}
+par(mfrow = c(2, 2))
+plot(morph.group.disprity.boot.moc, main = "Morphology", ylab = "Centroid Medians")
+plot(morph.chrono.disprity.boot.moc, main = "Morphology", ylab = "Centroid Medians")
+plot(phylo.group.disprity.boot.moc, main = "Phylogeny", ylab = "Centroid Medians")
+plot(phylo.chrono.disprity.boot.moc, main = "Phylogeny", ylab = "Centroid Medians")
+```
+
+##############
+
+rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
+
+
+### TO DOS:
+### ADD REFERENCES
+
+
+DROP CROWN TAXA
+DO REGULAR TIME SERIES AND GROUP DISPARITIES
+TRY TO CORRELATE MORPH AND PHYLO IF POSSIBLE?
 
 # Bibliography
