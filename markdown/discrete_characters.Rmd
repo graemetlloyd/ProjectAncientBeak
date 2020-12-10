@@ -29,20 +29,20 @@ Test reference @R-base.
 
 Before we begin we need to make sure the functions used in this file are installed in R by getting the packages from CRAN.
 
-```{r install required CRAN packages, message=FALSE, warning=FALSE}
+```{r install required CRAN packages, message=FALSE, warning=FALSE, results=FALSE}
 install.packages(c("phytools", "paleotree", "devtools", "maps", "dispRity", "Claddis", "strap", "vegan", "geomorph", "devtools", "gtools", "knitr", "MASS", "phylobase", "magrittr", "kableExtra", "RColorBrewer"), dependencies = TRUE)
 ```
 
 We also require some newer functions from the latest versions of the Claddis and dispRity packages so we will install these directly from GitHub.
 
-```{r install required GitHub packages, message=FALSE, warning=FALSE}
+```{r install required GitHub packages, message=FALSE, warning=FALSE, results=FALSE}
 devtools::install_github("graemetlloyd/Claddis")
 devtools::install_github("TGuillerme/dispRity", ref = "release")
 ```
 
 We can then load some libraries into memory, although most functions will be called with the following syntax: packagename::functionname.
 
-```{r load R librar(ies) into memory}
+```{r load R librar(ies) into memory, message=FALSE, warning=FALSE, results=FALSE}
 library(dispRity)
 library(stringr)
 ```
@@ -53,7 +53,7 @@ Before any analyses can be perfomed the raw data must be imported into R. This i
 
 First we will load the key raw data from the GitHub data folder into memory.
 
-```{r import data into R}
+```{r import data into R, message=FALSE, warning=FALSE, results=FALSE}
 nexus.data <- Claddis::read_nexus_matrix("https://raw.githubusercontent.com/graemetlloyd/ProjectAncientBeak/main/data/matrix.nex")
 tip.ages <- utils::read.table("https://raw.githubusercontent.com/graemetlloyd/ProjectAncientBeak/main/data/tipages.txt", sep = ",", header = TRUE, row.names = 1)
 mpts <- ape::read.nexus("https://raw.githubusercontent.com/graemetlloyd/ProjectAncientBeak/main/data/mpts.nex")
@@ -62,19 +62,19 @@ tip.dated.tree <- ape::read.nexus("https://raw.githubusercontent.com/graemetlloy
 
 We can also add a strict consensus tree for our parsimony data using the consensus function in the ape package.
 
-```{r build strict consensus tree}
+```{r build strict consensus tree, message=FALSE, warning=FALSE, results=FALSE}
 sc.tree <- ape::consensus(mpts)
 ```
 
 We also need to tweak a taxon name in the tip-dated tree to make sure these all match the rest of the data.
 
-```{r fix taxon names in tip-dated tree}
+```{r fix taxon names in tip-dated tree, message=FALSE, warning=FALSE, results=FALSE}
 tip.dated.tree$tip.label[tip.dated.tree$tip.label == "Mengciusornis_dentatus"] <- "Mengciusornis"
 ```
 
 Next we can define our three main taxon groupings: Enantiornithes, Ornithuromorpha and the remaining taxa labelled simply non-Ornithothoraces). We will use these later to subset our data.
 
-```{r set taxonomic groups for subsetting}
+```{r set taxonomic groups for subsetting, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes <- c("Boluochia", "Concornis", "Elsornis", "Eoalulavis", "Cathayornis", "Eocathayornis", "Eoenantiornis", "Gobipteryx", "Longipteryx", "Longirostravis", "Neuquenornis", "Pengornis", "Eopengornis", "Chiappeavis", "Parapengornis", "Protopteryx", "Rapaxavis", "Shanweiniao", "Vescornis", "Piscivorenantiornis", "Linyiornis", "Sulcavis", "Bohaiornis", "Longusunguis", "Shenqiornis", "Zhouornis", "Parabohaiornis", "Fortunguavis", "Pterygornis", "Cruralispennia", "Monoenantiornis", "Shangyang", "Mirusavis", "Gretcheniao", "Dunhuangia", "Qiliania")
 Ornithuromorpha <- c("Archaeorhynchus", "Schizooura", "Bellulornis", "Jianchangornis", "Songlingornis", "Longicrusavis", "Apsaravis", "Hongshanornis", "Archaeornithura", "Parahongshanornis", "Tianyuornis", "Patagopteryx", "Yixianornis", "Piscivoravis", "Iteravis", "Gansus", "Ichthyornis", "Hesperornis", "Parahesperornis", "Enaliornis", "Baptornis_advenus", "Baptornis_varneri", "Vegavis", "Mengciusornis", "Yanornis", "Similiyanornis", "Abitusavis", "Eogranivora", "Xinghaiornis", "Dingavis", "Vorona")
 NonOrnithothoraces <- c("Dromaeosauridae", "Archaeopteryx", "Jeholornis", "Jinguofortis", "Chongmingia", "Sapeornis", "Confuciusornis_sanctus", "Changchengornis_hengdaoziensis", "Eoconfuciusornis_zhengi", "Confuciusornis_dui", "Yangavis")
@@ -82,7 +82,7 @@ NonOrnithothoraces <- c("Dromaeosauridae", "Archaeopteryx", "Jeholornis", "Jingu
 
 We can now use this information to make a formal taxonGroups object for use in Claddis.
 
-```{r make Claddis taxonGroups object}
+```{r make Claddis taxonGroups object, message=FALSE, warning=FALSE, results=FALSE}
 taxon_groups <- list(Enantiornithes = Enantiornithes, Ornithuromorpha = Ornithuromorpha, NonOrnithothoraces = NonOrnithothoraces)
 class(taxon_groups) <- "taxonGroups"
 ```
@@ -93,21 +93,21 @@ Before we can use our parsimony trees these need to be assigned branch lengths r
 
 Parsimony trees can be time-scaled in R in simple ad-hoc ways, such as setting a minimum branch= length ("mbl").
 
-```{r time-scale trees using mbl method}
+```{r time-scale trees using mbl method, message=FALSE, warning=FALSE, results=FALSE}
 time.trees <- lapply(mpts, function(x) paleotree::timePaleoPhy(x, tip.ages, type = "mbl", vartime = 1))
 time.sc.tree <- paleotree::timePaleoPhy(sc.tree, tip.ages, type = "mbl", vartime = 1)
 ```
 
 Alternatively, after setting every internal node as old as its' oldest descendant taxon - a process which generates multiple problematic zero-length branches (zlbs) - these zlbs can be assigned positive duration by sharing it equally ("equal") with the first preceding branch of positive duration.
 
-```{r time-scale trees using equal method}
+```{r time-scale trees using equal method, message=FALSE, warning=FALSE, results=FALSE}
 time.trees2 <- lapply(mpts, function(x) paleotree::timePaleoPhy(x, tip.ages, type = "equal", vartime = 1))
 time.sc.tree2 <- paleotree::timePaleoPhy(sc.tree, tip.ages, type = "equal", vartime = 1)
 ```
 
 Our tip-dated tree already has branch durations, but still needs a root age assignment. Here, as we have two extant taxa (Anas, Gallus) we can simply set this using the maximum path-length (root to Anas (or Gallus) path) in millions of years.
 
-```{r set tip-dated tree root age}
+```{r set tip-dated tree root age, message=FALSE, warning=FALSE, results=FALSE}
 tip.dated.tree$root.time <- max(diag(ape::vcv(tip.dated.tree))) # Set root age as max path length due to extant taxa
 ```
 
@@ -115,7 +115,7 @@ tip.dated.tree$root.time <- max(diag(ape::vcv(tip.dated.tree))) # Set root age a
 
 As our analysis is focused on the Mesozoic and sampling of Neornithes - the bird crown - is severely limited we need to prune these taxa.
 
-```{r remove crown taxa from data}
+```{r remove crown taxa from data, message=FALSE, warning=FALSE, results=FALSE}
 crown.taxa.to.remove <- c("Gallus", "Anas")
 stem.time.trees <- lapply(time.trees, function(x) Claddis::drop_time_tip(x, tip_names = crown.taxa.to.remove))
 stem.time.trees2 <- lapply(time.trees, function(x) Claddis::drop_time_tip(x, tip_names = crown.taxa.to.remove))
@@ -131,19 +131,19 @@ In order to analyse the data further morphological distances between each taxon 
 
 First we can generate a distance matrix using the Maximum Observable Rescaled Distance ("mord") metric. This is effectively a modified version of the Gower coefficient that ensures all distances are placed on a zero to one scale. These rescale distances based on available (observable) characters as a means of dealing with missing data.)
 
-```{r calculate mord distances}
+```{r calculate mord distances, message=FALSE, warning=FALSE, results=FALSE}
 stem.mord.dist.data <- Claddis::calculate_morphological_distances(stem.nexus.data, distance_metric = "mord", distance_transformation = "none")
 ```
 
 Alternatively, we can use the popular Generalised Euclidean Distance ("ged") metric. This approach deals with missing data by plugging gaps with a mean distance.
 
-```{r calculate ged distances}
+```{r calculate ged distances, message=FALSE, warning=FALSE, results=FALSE}
 stem.ged.dist.data <- Claddis::calculate_morphological_distances(stem.nexus.data, distance_metric = "ged", distance_transformation = "none")
 ```
 
 We can also ordinate the data into a high-dimensional space - effectively giving each taxon a set of coordinates in that space that is intended to convey its' position relative to all other taxa in the same metric space. This enables a broader array of downstream analyses to be performed than distances alone allow.
 
-```{r ordinate mord distances}
+```{r ordinate mord distances, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, distance_metric = "mord")
 ```
 
@@ -153,13 +153,13 @@ An additional complication for discrete characters is the coding of some data as
 
 A solution to this problem was put forward by Hopkins and St John ([REF]; HSJ) that requires explicitly stating the hierarchical nature of character dependencies. This information is then used to encode the differences across each set of linked characters into just the character at the top of each hierarchy. We can start by stating these dependencies with a simple table.
 
-```{r set character dependencies}
+```{r set character dependencies, message=FALSE, warning=FALSE, results=FALSE}
 character.dependencies <- matrix(c(35, 34, 75, 69, 173, 172), ncol = 2, byrow = TRUE, dimnames = list(c(), c("dependent_character", "independent_character")))
 ```
 
 Next we can apply the HSJ solution using a chosen alpha value that varies the influence of the dependent characters on the distances. Here we will use 0.5 (the middle, compromise value).
 
-```{r ordinate mord distances using HSJ correction}
+```{r ordinate mord distances using HSJ correction, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, distance_metric = "mord", distance_inapplicable_behaviour = "hsj", character_dependencies = character.dependencies, alpha = 0.5)
 ```
 
@@ -169,13 +169,13 @@ Due to missing data some pairwise distances can be incalculable. For example, if
 
 We can find any removed taxa we found using the appropriate output.
 
-```{r check for taxa removed due to incalculable distances}
+```{r check for taxa removed due to incalculable distances, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data$removed_taxa
 ```
 
 For consistency we now need to remove these taxa from our phylogenetic hypotheses. Note that we do this *after* they have contributed information to time-scaling those trees as this is best practice for optimal branch-length estimation. In other words, we should use the maximum available information for every test until it is insufficent.
 
-```{r prune removed taxa from data}
+```{r prune removed taxa from data, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.trees <- lapply(stem.time.trees, function(x) Claddis::drop_time_tip(x, tip_names = stem.pcoa.data$removed_taxa))
 stem.time.trees2 <- lapply(stem.time.trees2, function(x) Claddis::drop_time_tip(x, tip_names = stem.pcoa.data$removed_taxa))
 stem.time.sc.tree <- Claddis::drop_time_tip(stem.time.sc.tree, tip_names = stem.pcoa.data$removed_taxa)
@@ -208,14 +208,14 @@ Claddis::plot_multi_morphospace(stem.pcoa.data, n_axes = 8, plot_taxon_names = F
 
 We can also make a stacked morphospace plot [FOOTE REF], but first we need to make a new tip ages object.
 
-```{r reformat age data for use with Claddis}
+```{r reformat age data for use with Claddis, message=FALSE, warning=FALSE, results=FALSE}
 pcoa.ages.data <- tip.ages[rownames(stem.pcoa.data$distance_matrix), ]
 colnames(pcoa.ages.data) <- c("fad", "lad")
 ```
 
 As well as a timeBins object that defines the slices we want to plot.
 
-```{r build Claddis timeBins object for subsetting}
+```{r build Claddis timeBins object for subsetting, message=FALSE, warning=FALSE, results=FALSE}
 time_bins <- matrix(c(174.0, 145.0, 145.0, 125.0, 125.0, 100.5, 100.5, 66.0), ncol = 2, byrow = TRUE, dimnames = list(c("Upper Jurassic", "Berriasian-Barremian", "Aptian-Albian", "Upper Cretaceous"), c("fad", "lad")))
 class(time_bins) <- "timeBins"
 ```
@@ -232,50 +232,50 @@ We can also use our data to calculate disparity metrics, either for taxonomic gr
 
 A simple ordination-free metric is simply the avergae (mean) pairwsie distance between each taxon in our three groups.
 
-```{r calculate mean pairwise distances for each group}
+```{r calculate mean pairwise distances for each group, message=FALSE, warning=FALSE, results=FALSE}
 Claddis::calculate_MPD(stem.mord.dist.data, taxon_groups)
 ```
 
 Alternatively we can weight each distance by the amount of available (observable) information and take the mean of that.
 
-```{r calculate weighted mean pairwise distances for each group}
+```{r calculate weighted mean pairwise distances for each group, message=FALSE, warning=FALSE, results=FALSE}
 Claddis::calculate_WMPD(stem.mord.dist.data, taxon_groups)
 ```
 
 We can also apply the same measures for our time bins instead.
 
-```{r calculate weighted mean and mean pairwise distances for each time bin}
+```{r calculate weighted mean and mean pairwise distances for each time bin, message=FALSE, warning=FALSE, results=FALSE}
 Claddis::calculate_MPD(stem.mord.dist.data, taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
 Claddis::calculate_WMPD(stem.mord.dist.data, taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
 ```
 
 Many disparity metrics can also be generated from our ordinations apce, such as sum of ranges...
 
-```{r calculate sum of ranges for each group}
+```{r calculate sum of ranges for each group, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = sum(abs(apply(apply(stem.pcoa.data$vectors[Enantiornithes, ], 2, range), 2, diff))), Ornithuromorpha = sum(abs(apply(apply(stem.pcoa.data$vectors[Ornithuromorpha, ], 2, range), 2, diff))), NonOrnithothoraces = sum(abs(apply(apply(stem.pcoa.data$vectors[NonOrnithothoraces, ], 2, range), 2, diff))))
 ```
 
 ...sum of variances...
 
-```{r calculate sum of variances for each group}
+```{r calculate sum of variances for each group, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = sum(apply(stem.pcoa.data$vectors[Enantiornithes, ], 2, var)), Ornithuromorpha = sum(apply(stem.pcoa.data$vectors[Ornithuromorpha, ], 2, var)), NonOrnithothoraces = sum(apply(stem.pcoa.data$vectors[NonOrnithothoraces, ], 2, var)))
 ```
 
 ...product of ranges....
 
-```{r calculate product of ranges for each group}
+```{r calculate product of ranges for each group, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = prod(abs(apply(apply(stem.pcoa.data$vectors[Enantiornithes, ], 2, range), 2, diff))), Ornithuromorpha = prod(abs(apply(apply(stem.pcoa.data$vectors[Ornithuromorpha, ], 2, range), 2, diff))), NonOrnithothoraces = prod(abs(apply(apply(stem.pcoa.data$vectors[NonOrnithothoraces, ], 2, range), 2, diff))))
 ```
 
 ...or product of variances.
 
-```{r calculate product of variance for each group}
+```{r calculate product of variance for each group, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = prod(apply(stem.pcoa.data$vectors[Enantiornithes, ], 2, var)), Ornithuromorpha = prod(apply(stem.pcoa.data$vectors[Ornithuromorpha, ], 2, var)), NonOrnithothoraces = prod(apply(stem.pcoa.data$vectors[NonOrnithothoraces, ], 2, var)))
 ```
 
 We can also make a simple set of barplots to compare the results of these metrics.
 
-```{r graph group differences}
+```{r graph group differences, message=FALSE, warning=FALSE, results=FALSE}
 par(mfrow = c(3, 2))
 barplot(Claddis::calculate_MPD(stem.mord.dist.data, taxon_groups), main = "Mean Pairwise Distance")
 barplot(Claddis::calculate_WMPD(stem.mord.dist.data, taxon_groups), main = "Weighted Mean Pairwise Distance")
@@ -288,27 +288,27 @@ barplot(c(Enantiornithes = prod(apply(stem.pcoa.data$vectors[Enantiornithes, ], 
 Note that products can be problematic when they involve multiplying through by the very low variance high axes. We can thus trim our data to just the first 30 axes.
 
 
-```{r make data frame of first 30 PCoA axes}
+```{r make data frame of first 30 PCoA axes, message=FALSE, warning=FALSE, results=FALSE}
 pcoa.data <- as.data.frame(stem.pcoa.data$vectors[, 1:30])
 pcoa.data <- data.matrix(pcoa.data)
 ```
 
 And as we are going to use the dispRity package convert our ages to the preferred format.
 
-```{r make new taxon ages object for dispRity use}
+```{r make new taxon ages object for dispRity use, message=FALSE, warning=FALSE, results=FALSE}
 disprity.ages.data <- pcoa.ages.data
 colnames(disprity.ages.data) <- c("FAD", "LAD")
 ```
 
 And set some new time bins for the time series analyses.
 
-```{r set time-bins for use with dispRity time series}
+```{r set time-bins for use with dispRity time series, message=FALSE, warning=FALSE, results=FALSE}
 time.bins <- c(170, 145, 129.4, 100.5, 86.3, 66)
 ```
 
 We can now use our various phylogenetc hypotheses and time bin scheme to create dispRity objects.
 
-```{r bin dispRity data by time}
+```{r bin dispRity data by time, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.sc.trees.binned.morphospace <- lapply(stem.time.trees, function(x) stem.time.sc.tree.binned.morphospace <- dispRity::chrono.subsets(data = pcoa.data, tree = x, method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data))
 stem.time.sc.trees2.binned.morphospace <- lapply(stem.time.trees2, function(x) stem.time.sc.tree2.binned.morphospace <- dispRity::chrono.subsets(data = pcoa.data, tree = x, method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data))
 stem.time.sc.tree.binned.morphospace <- dispRity::chrono.subsets(data = pcoa.data, tree = stem.time.sc.tree, method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data)
@@ -318,7 +318,7 @@ stem.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(data = pcoa.d
 
 We can also use dispRity to bootstrap our data and give a better sense of our uncertianty.
 
-```{r bootstrap dispRity time-binned data}
+```{r bootstrap dispRity time-binned data, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.sc.trees.boot.bin.morphospace <- lapply(stem.time.sc.trees.binned.morphospace, function(x) dispRity::boot.matrix(x, bootstrap = 1000))
 stem.time.sc.trees2.boot.bin.morphospace <- lapply(stem.time.sc.trees2.binned.morphospace, function(x) dispRity::boot.matrix(x, bootstrap = 1000))
 stem.time.sc.tree.boot.bin.morphospace <- dispRity::boot.matrix(stem.time.sc.tree.binned.morphospace, bootstrap = 1000)
@@ -328,7 +328,7 @@ stem.tip.dated.tree.boot.bin.morphospace <- dispRity::boot.matrix(stem.tip.dated
 
 Now we can calculate some disparity metrics again, such as sum of variances.
 
-```{r calculate dispRity time-binned sum of variances}
+```{r calculate dispRity time-binned sum of variances, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.sc.trees.boot.bin.morphospace.sov <- lapply(stem.time.sc.trees.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, variances)))
 stem.time.sc.trees2.boot.bin.morphospace.sov <- lapply(stem.time.sc.trees2.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, variances)))
 stem.time.sc.tree.boot.bin.morphospace.sov <- dispRity::dispRity(stem.time.sc.tree.boot.bin.morphospace, metric = c(sum, variances))
@@ -359,7 +359,7 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 Or sum of ranges.
 
-```{r calculate dispRity time-binned sum of ranges}
+```{r calculate dispRity time-binned sum of ranges, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.sc.trees.boot.bin.morphospace.sor <- lapply(stem.time.sc.trees.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, ranges)))
 stem.time.sc.trees2.boot.bin.morphospace.sor <- lapply(stem.time.sc.trees2.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, ranges)))
 stem.time.sc.tree.boot.bin.morphospace.sor <- dispRity::dispRity(stem.time.sc.tree.boot.bin.morphospace, metric = c(sum, ranges))
@@ -390,7 +390,7 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 Or centroid medians.
 
-```{r calculate dispRity time-binned centroid medians}
+```{r calculate dispRity time-binned centroid medians, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.sc.trees.boot.bin.morphospace.moc <- lapply(stem.time.sc.trees.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(median, centroids)))
 stem.time.sc.trees2.boot.bin.morphospace.moc <- lapply(stem.time.sc.trees2.boot.bin.morphospace, function(x) dispRity::dispRity(x, metric = c(median, centroids)))
 stem.time.sc.tree.boot.bin.morphospace.moc <- dispRity::dispRity(stem.time.sc.tree.boot.bin.morphospace, metric = c(median, centroids))
@@ -421,19 +421,19 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 We can also subset the data by taxonomic group.
 
-```{r create dispRity group subsets}
+```{r create dispRity group subsets, message=FALSE, warning=FALSE, results=FALSE}
 stem.aves.groups <- dispRity::custom.subsets(pcoa.data, group = list(NonOrnithothoraces = match(NonOrnithothoraces, rownames(pcoa.data)), Enantiornithes = match(Enantiornithes, rownames(pcoa.data)), Ornithuromorpha = match(Ornithuromorpha, rownames(pcoa.data))))
 ```
 
 Bootstrap it.
 
-```{r bootstrap dispRity group data}
+```{r bootstrap dispRity group data, message=FALSE, warning=FALSE, results=FALSE}
 stem.aves.groups.bootstrap <- dispRity::boot.matrix(stem.aves.groups, bootstrap = 1000)
 ```
 
 And calculate the same disparity metrics as the time series.
 
-```{r calculate dispRity group metrics}
+```{r calculate dispRity group metrics, message=FALSE, warning=FALSE, results=FALSE}
 stem.aves.groups.bootstrap.sov <- dispRity::dispRity(stem.aves.groups.bootstrap, metric = c(sum, variances))
 stem.aves.groups.bootstrap.sor <- dispRity::dispRity(stem.aves.groups.bootstrap, metric = c(sum, ranges))
 stem.aves.groups.bootstrap.moc <- dispRity::dispRity(stem.aves.groups.bootstrap, metric = c(median, centroids))
@@ -441,7 +441,7 @@ stem.aves.groups.bootstrap.moc <- dispRity::dispRity(stem.aves.groups.bootstrap,
 
 And visualise the results.
 
-```{r dispRity group barplots, fig.height=10, fig.width=10}
+```{r dispRity group barplots, fig.height=10, fig.width=10, message=FALSE, warning=FALSE, results=FALSE}
 boxplot(lapply(stem.aves.groups.bootstrap.sov$disparity, function(x) unlist(x)), ylab = "Sum Of Variance")
 boxplot(lapply(stem.aves.groups.bootstrap.sor$disparity, function(x) unlist(x)), ylab = "Sum Of Ranges")
 boxplot(lapply(stem.aves.groups.bootstrap.moc$disparity, function(x) unlist(x)), ylab = "Centroid Median")
@@ -451,14 +451,14 @@ boxplot(lapply(stem.aves.groups.bootstrap.moc$disparity, function(x) unlist(x)),
 
 Our main aim is to compare the morphospaces of the two major sister-clades of Mesozoic birds, Enantiornithes and Ornithuromorpha. We will begin by creating separate PCoA data sets.
 
-```{r create separate Enantiornithes and Ornithuromorpha pcoa data sets}
+```{r create separate Enantiornithes and Ornithuromorpha pcoa data sets, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.pcoa.data <- pcoa.data[Enantiornithes, ]
 Ornithuromorpha.pcoa.data <- pcoa.data[Ornithuromorpha, ]
 ```
 
 We can also create Enantiornithes-only trees.
 
-```{r create Enantiornithes-only trees}
+```{r create Enantiornithes-only trees, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.stem.time.trees <- lapply(stem.time.trees, function(x) Claddis::drop_time_tip(x, tip_names = setdiff(x$tip.label, Enantiornithes)))
 Enantiornithes.stem.time.trees2 <- lapply(stem.time.trees2, function(x) Claddis::drop_time_tip(x, tip_names = setdiff(x$tip.label, Enantiornithes)))
 Enantiornithes.stem.time.sc.tree <- Claddis::drop_time_tip(stem.time.sc.tree, tip_names = setdiff(stem.time.sc.tree$tip.label, Enantiornithes))
@@ -468,7 +468,7 @@ Enantiornithes.stem.tip.dated.tree <- Claddis::drop_time_tip(stem.tip.dated.tree
 
 And Ornithuromorpha-only trees.
 
-```{r create Ornithuromorpha-only trees}
+```{r create Ornithuromorpha-only trees, message=FALSE, warning=FALSE, results=FALSE}
 Ornithuromorpha.stem.time.trees <- lapply(stem.time.trees, function(x) Claddis::drop_time_tip(x, tip_names = setdiff(x$tip.label, Ornithuromorpha)))
 Ornithuromorpha.stem.time.trees2 <- lapply(stem.time.trees2, function(x) Claddis::drop_time_tip(x, tip_names = setdiff(x$tip.label, Ornithuromorpha)))
 Ornithuromorpha.stem.time.sc.tree <- Claddis::drop_time_tip(stem.time.sc.tree, tip_names = setdiff(stem.time.sc.tree$tip.label, Ornithuromorpha))
@@ -478,13 +478,13 @@ Ornithuromorpha.stem.tip.dated.tree <- Claddis::drop_time_tip(stem.tip.dated.tre
 
 We can also create some new time bins that only span our two major clades.
 
-```{r create Enantiornithes and Ornithuromorpha time bins}
+```{r create Enantiornithes and Ornithuromorpha time bins, message=FALSE, warning=FALSE, results=FALSE}
 comparison_time_bins <- c(150, 125, 100.5, 66)
 ```
 
 Now we can build new dispRity objects for Enantiornithes.
 
-```{r make Enantiornithes dispRity objects}
+```{r make Enantiornithes dispRity objects, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.trees.binned.morphospace <- lapply(Enantiornithes.stem.time.trees, function(x) dispRity::chrono.subsets(data = Enantiornithes.pcoa.data, tree = x, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Enantiornithes, ]))
 Enantiornithes.trees2.binned.morphospace <- lapply(Enantiornithes.stem.time.trees2, function(x) dispRity::chrono.subsets(data = Enantiornithes.pcoa.data, tree = x, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Enantiornithes, ]))
 Enantiornithes.sc.tree.binned.morphospace <- dispRity::chrono.subsets(data = Enantiornithes.pcoa.data, tree = Enantiornithes.stem.time.sc.tree, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Enantiornithes, ])
@@ -494,7 +494,7 @@ Enantiornithes.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(dat
 
 And Ornithuromorpha.
 
-```{r make Ornithuromorpha dispRity objects}
+```{r make Ornithuromorpha dispRity objects, message=FALSE, warning=FALSE, results=FALSE}
 Ornithuromorpha.trees.binned.morphospace <- lapply(Ornithuromorpha.stem.time.trees, function(x) dispRity::chrono.subsets(data = Ornithuromorpha.pcoa.data, tree = x, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Ornithuromorpha, ]))
 Ornithuromorpha.trees2.binned.morphospace <- lapply(Ornithuromorpha.stem.time.trees2, function(x) dispRity::chrono.subsets(data = Ornithuromorpha.pcoa.data, tree = x, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Ornithuromorpha, ]))
 Ornithuromorpha.sc.tree.binned.morphospace <- dispRity::chrono.subsets(data = Ornithuromorpha.pcoa.data, tree = Ornithuromorpha.stem.time.sc.tree, method = "discrete", time = comparison_time_bins, inc.nodes = FALSE, FADLAD = disprity.ages.data[Ornithuromorpha, ])
@@ -504,7 +504,7 @@ Ornithuromorpha.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(da
 
 And bootstrap the data.
 
-```{r bootstrap Enantiornithes and Ornithuromorpha objects}
+```{r bootstrap Enantiornithes and Ornithuromorpha objects, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.trees.binned.morphospace <- lapply(Enantiornithes.trees.binned.morphospace, function(x) dispRity::boot.matrix(x, bootstrap = 1000))
 Enantiornithes.boot.trees2.binned.morphospace <- lapply(Enantiornithes.trees2.binned.morphospace, function(x) dispRity::boot.matrix(x, bootstrap = 1000))
 Enantiornithes.boot.sc.tree.binned.morphospace <- dispRity::boot.matrix(Enantiornithes.sc.tree.binned.morphospace, bootstrap = 1000)
@@ -519,7 +519,7 @@ Ornithuromorpha.boot.tip.dated.tree.binned.morphospace <- dispRity::boot.matrix(
 
 Calculate sum of variances.
 
-```{r calculate Enantiornithes and Ornithuromorpha sum of variances}
+```{r calculate Enantiornithes and Ornithuromorpha sum of variances, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.trees.disparity.sov <- lapply(Enantiornithes.boot.trees.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, variances)))
 Enantiornithes.boot.trees2.disparity.sov <- lapply(Enantiornithes.boot.trees2.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, variances)))
 Enantiornithes.boot.sc.tree.disparity.sov <- dispRity::dispRity(Enantiornithes.boot.sc.tree.binned.morphospace, metric = c(sum, variances))
@@ -534,7 +534,7 @@ Ornithuromorpha.boot.tip.dated.tree.disparity.sov <- dispRity::dispRity(Ornithur
 
 Calculate sum of ranges.
 
-```{r calculate Enantiornithes and Ornithuromorpha sum of ranges}
+```{r calculate Enantiornithes and Ornithuromorpha sum of ranges, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.trees.disparity.sor <- lapply(Enantiornithes.boot.trees.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, ranges)))
 Enantiornithes.boot.trees2.disparity.sor <- lapply(Enantiornithes.boot.trees2.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(sum, ranges)))
 Enantiornithes.boot.sc.tree.disparity.sor <- dispRity::dispRity(Enantiornithes.boot.sc.tree.binned.morphospace, metric = c(sum, ranges))
@@ -549,7 +549,7 @@ Ornithuromorpha.boot.tip.dated.tree.disparity.sor <- dispRity::dispRity(Ornithur
 
 Calculate median centroids.
 
-```{r calculate Enantiornithes and Ornithuromorpha median centroids}
+```{r calculate Enantiornithes and Ornithuromorpha median centroids, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.trees.disparity.moc <- lapply(Enantiornithes.boot.trees.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(median, centroids)))
 Enantiornithes.boot.trees2.disparity.moc <- lapply(Enantiornithes.boot.trees2.binned.morphospace, function(x) dispRity::dispRity(x, metric = c(median, centroids)))
 Enantiornithes.boot.sc.tree.disparity.moc <- dispRity::dispRity(Enantiornithes.boot.sc.tree.binned.morphospace, metric = c(median, centroids))
@@ -679,7 +679,7 @@ points(x = comparison_time_bins[1:(length(comparison_time_bins) - 1)] + diff(com
 We can also do some PERMANOVA tests between our groups. First we will define a custom adonis function.
 
 
-```{r define adonis function}
+```{r define adonis function, message=FALSE, warning=FALSE, results=FALSE}
 pairwise.adonis <- function(x, factors, sim.method, p.adjust.m) {
   co <- as.matrix(combn(unique(factors), 2))
   pairs <- c()
@@ -700,7 +700,7 @@ pairwise.adonis <- function(x, factors, sim.method, p.adjust.m) {
 
 We first need to create a factors vector for our taxon groups.
 
-```{r make taxon groups for PERMANOVA tests}
+```{r make taxon groups for PERMANOVA tests, message=FALSE, warning=FALSE, results=FALSE}
 groups_as_factors <- as.factor(do.call(rbind, lapply(as.list(names(taxon_groups)), function(x) cbind(x, taxon_groups[[x]])))[, 1])
 names(groups_as_factors) <- unname(unlist(taxon_groups))
 groups_as_factors <- groups_as_factors[rownames(pcoa.data)]
@@ -708,7 +708,7 @@ groups_as_factors <- groups_as_factors[rownames(pcoa.data)]
 
 And now we can do our pairwise adonis tests.
 
-```{r calculate pairwise adonis tests on taxon groups}
+```{r calculate pairwise adonis tests on taxon groups, message=FALSE, warning=FALSE, results=FALSE}
 pairwise.adonis(pcoa.data, groups_as_factors, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
 ```
 
@@ -718,7 +718,7 @@ We can repeat many of these tests but including ancestral state estimates in the
 
 First we must remake our trees by only excluding crown taxa.
 
-```{r remake trees excluding crown taxa}
+```{r remake trees excluding crown taxa, message=FALSE, warning=FALSE, results=FALSE}
 stem.time.trees <- lapply(time.trees, function(x) Claddis::drop_time_tip(x, tip_names = crown.taxa.to.remove))
 stem.time.trees2 <- lapply(time.trees, function(x) Claddis::drop_time_tip(x, tip_names = crown.taxa.to.remove))
 stem.tip.dated.tree <- Claddis::drop_time_tip(tip.dated.tree, tip_names = crown.taxa.to.remove)
@@ -726,7 +726,7 @@ stem.tip.dated.tree <- Claddis::drop_time_tip(tip.dated.tree, tip_names = crown.
 
 Now we can do a phylogenetic ordination where discrete ancestral character estimations are made for internal nodes using our tip-dated tree.
 
-```{r ordinate data with discrete ancestral state estimates}
+```{r ordinate data with discrete ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, time_tree = stem.tip.dated.tree)
 ```
 
@@ -746,50 +746,50 @@ Claddis::plot_multi_morphospace(stem.tip.dated.tree.pcoa.data, n_axes = 8, plot_
 
 And calculate sum of ranges...
 
-```{r calculate sum of ranges for each group in phylomorphospace}
+```{r calculate sum of ranges for each group in phylomorphospace, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = sum(abs(apply(apply(stem.tip.dated.tree.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Enantiornithes), ], 2, range), 2, diff))), Ornithuromorpha = sum(abs(apply(apply(stem.tip.dated.tree.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Ornithuromorpha), ], 2, range), 2, diff))), NonOrnithothoraces = sum(abs(apply(apply(stem.tip.dated.tree.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), NonOrnithothoraces), ], 2, range), 2, diff))))
 ```
 
 ...sum of variances...
 
-```{r calculate sum of variances for each group in phylomorphospace}
+```{r calculate sum of variances for each group in phylomorphospace, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = sum(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Enantiornithes), ], 2, var)), Ornithuromorpha = sum(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Ornithuromorpha), ], 2, var)), NonOrnithothoraces = sum(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), NonOrnithothoraces), ], 2, var)))
 ```
 
 ...product of ranges....
 
-```{r calculate product of ranges for each group in phylomorphospace}
+```{r calculate product of ranges for each group in phylomorphospace, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = prod(abs(apply(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Enantiornithes), ], 2, range), 2, diff))), Ornithuromorpha = prod(abs(apply(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Ornithuromorpha), ], 2, range), 2, diff))), NonOrnithothoraces = prod(abs(apply(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), NonOrnithothoraces), ], 2, range), 2, diff))))
 ```
 
 ...or product of variances.
 
-```{r calculate product of variance for each group in phylomorphospace}
+```{r calculate product of variance for each group in phylomorphospace, message=FALSE, warning=FALSE, results=FALSE}
 c(Enantiornithes = prod(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Enantiornithes), ], 2, var)), Ornithuromorpha = prod(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), Ornithuromorpha), ], 2, var)), NonOrnithothoraces = prod(apply(stem.pcoa.data$vectors[intersect(rownames(stem.tip.dated.tree.pcoa.data$vectors), NonOrnithothoraces), ], 2, var)))
 ```
 
 Next we can repeat our dispRity analyses. First we need to trim down the tree again.
 
-```{r remake trimmed tip-dated tree}
+```{r remake trimmed tip-dated tree, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree <- stem.tip.dated.tree.pcoa.data$time_tree
 ```
 
 We also need to add node labels to the tree.
 
-```{r add node labels to tree}
+```{r add node labels to tree, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree$node.label <- paste0("n", 1:stem.tip.dated.tree$Nnode)
 ```
 
 And we can create a new phylogenetic taxon groups object too.
 
-```{r set phylogenetic taxon groups}
+```{r set phylogenetic taxon groups, message=FALSE, warning=FALSE, results=FALSE}
 phylo_taxon_groups <- lapply(taxon_groups, function(x) c(stem.tip.dated.tree$tip.label[intersect(1:ape::Ntip(stem.tip.dated.tree), stem.tip.dated.tree$edge[Claddis::find_descendant_edges(n = Claddis::find_mrca(intersect(x, stem.tip.dated.tree$tip.label), stem.tip.dated.tree), tree = stem.tip.dated.tree), 2])], stem.tip.dated.tree$node.label[unique(stem.tip.dated.tree$edge[Claddis::find_descendant_edges(n = Claddis::find_mrca(intersect(x, stem.tip.dated.tree$tip.label), stem.tip.dated.tree), tree = stem.tip.dated.tree), 1] - ape::Ntip(stem.tip.dated.tree))]))
 phylo_taxon_groups$NonOrnithothoraces <- setdiff(c(stem.tip.dated.tree$tip.label, stem.tip.dated.tree$node.label), unlist(phylo_taxon_groups[c("Enantiornithes", "Ornithuromorpha")]))
 ```
 
 And we will only use the first 40 axes.
 
-```{r make data frame of first 40 PCoA axes with ancestral state estimates}
+```{r make data frame of first 40 PCoA axes with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.pcoa.data <- as.data.frame(stem.tip.dated.tree.pcoa.data$vectors[, 1:40])
 stem.tip.dated.tree.pcoa.data <- data.matrix(stem.tip.dated.tree.pcoa.data)
 rownames(stem.tip.dated.tree.pcoa.data)[match(as.character((ape::Ntip(stem.tip.dated.tree) + 1):(ape::Ntip(stem.tip.dated.tree) + stem.tip.dated.tree$Nnode)), rownames(stem.tip.dated.tree.pcoa.data))] <- paste0("n", 1:stem.tip.dated.tree$Nnode)
@@ -797,32 +797,32 @@ rownames(stem.tip.dated.tree.pcoa.data)[match(as.character((ape::Ntip(stem.tip.d
 
 And as we are going to use the dispRity package convert our ages to the preferred format.
 
-```{r make new taxon ages object for dispRity use with ancestral state estimates}
+```{r make new taxon ages object for dispRity use with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 disprity.ages.data <- tip.ages[stem.tip.dated.tree$tip.label, ]
 colnames(disprity.ages.data) <- c("FAD", "LAD")
 ```
 
 And set some new time bins for the time series analyses.
 
-```{r set time-bins for use with dispRity time series with ancestral state estimates}
+```{r set time-bins for use with dispRity time series with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 time.bins <- c(170, 145, 129.4, 100.5, 86.3, 66)
 ```
 
 We can now use our various phylogenetc hypotheses and time bin scheme to create dispRity objects.
 
-```{r bin dispRity data by time with ancestral state estimates}
+```{r bin dispRity data by time with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(data = stem.tip.dated.tree.pcoa.data, tree = stem.tip.dated.tree, method = "discrete", time = time.bins, inc.nodes = TRUE, FADLAD = disprity.ages.data)
 ```
 
 We can also use dispRity to bootstrap our data and give a better sense of our uncertianty.
 
-```{r bootstrap dispRity time-binned data with ancestral state estimates}
+```{r bootstrap dispRity time-binned data with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.boot.bin.morphospace <- dispRity::boot.matrix(stem.tip.dated.tree.binned.morphospace, bootstrap = 1000)
 ```
 
 Now we can calculate some disparity metrics again, such as sum of variances.
 
-```{r calculate dispRity time-binned sum of variances with ancestral state estimates}
+```{r calculate dispRity time-binned sum of variances with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.boot.bin.morphospace.sov <- dispRity::dispRity(stem.tip.dated.tree.boot.bin.morphospace, metric = c(sum, variances))
 ```
 
@@ -837,7 +837,7 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 Or sum of ranges.
 
-```{r calculate dispRity time-binned sum of ranges with ancestral state estimates}
+```{r calculate dispRity time-binned sum of ranges with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.boot.bin.morphospace.sor <- dispRity::dispRity(stem.tip.dated.tree.boot.bin.morphospace, metric = c(sum, ranges))
 ```
 
@@ -852,7 +852,7 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 Or centroid medians.
 
-```{r calculate dispRity time-binned centroid medians with ancestral state estimates}
+```{r calculate dispRity time-binned centroid medians with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 stem.tip.dated.tree.boot.bin.morphospace.moc <- dispRity::dispRity(stem.tip.dated.tree.boot.bin.morphospace, metric = c(median, centroids))
 ```
 
@@ -867,19 +867,19 @@ points(x = time.bins[1:(length(time.bins) - 1)] + diff(time.bins) / 2, y = unlis
 
 We can also subset by group.
 
-```{r subset dispRity with ancestors PCoA by group}
+```{r subset dispRity with ancestors PCoA by group, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data.groups <- dispRity::custom.subsets(stem.tip.dated.tree.pcoa.data, group = lapply(phylo_taxon_groups, function(x) intersect(c(stem.tip.dated.tree$tip.label, stem.tip.dated.tree$node.label), x)))
 ```
 
 Bootstrap.
 
-```{r bootstrap dispRity with ancestors PCoA by group}
+```{r bootstrap dispRity with ancestors PCoA by group, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data.groups.bootstrap <- dispRity::boot.matrix(stem.pcoa.data.groups, bootstrap = 1000)
 ```
 
 And calculate our disparity metrics.
 
-```{r calculate metrics on dispRity with ancestors PCoA by group}
+```{r calculate metrics on dispRity with ancestors PCoA by group, message=FALSE, warning=FALSE, results=FALSE}
 stem.pcoa.data.groups.bootstrap.sov <- dispRity::dispRity(stem.pcoa.data.groups.bootstrap, metric = c(sum, variances))
 stem.pcoa.data.groups.bootstrap.sor <- dispRity::dispRity(stem.pcoa.data.groups.bootstrap, metric = c(sum, ranges))
 stem.pcoa.data.groups.bootstrap.moc <- dispRity::dispRity(stem.pcoa.data.groups.bootstrap, metric = c(median, centroids))
@@ -898,35 +898,35 @@ We can also repeat the Enantiornithes and Ornithuromorpha time series dispRity a
 
 First we need to remake the dispRity objects.
 
-```{r make Enantiornithes and Ornithuromorpha dispRity objects with ancestral state estimates}
+```{r make Enantiornithes and Ornithuromorpha dispRity objects with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(data = stem.tip.dated.tree.pcoa.data[c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$node.label), ], tree = Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes)), method = "discrete", time = comparison_time_bins, inc.nodes = TRUE, FADLAD = disprity.ages.data[intersect(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes), ])
 Ornithuromorpha.tip.dated.tree.binned.morphospace <- dispRity::chrono.subsets(data = stem.tip.dated.tree.pcoa.data[c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$node.label), ], tree = Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha)), method = "discrete", time = comparison_time_bins, inc.nodes = TRUE, FADLAD = disprity.ages.data[intersect(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha), ])
 ```
 
 And bootstrap the data.
 
-```{r bootstrap Enantiornithes and Ornithuromorpha objects with ancestral state estimates}
+```{r bootstrap Enantiornithes and Ornithuromorpha objects with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.tip.dated.tree.binned.morphospace <- dispRity::boot.matrix(Enantiornithes.tip.dated.tree.binned.morphospace, bootstrap = 1000)
 Ornithuromorpha.boot.tip.dated.tree.binned.morphospace <- dispRity::boot.matrix(Ornithuromorpha.tip.dated.tree.binned.morphospace, bootstrap = 1000)
 ```
 
 Calculate sum of variances.
 
-```{r calculate Enantiornithes and Ornithuromorpha sum of variances with ancestral state estimates}
+```{r calculate Enantiornithes and Ornithuromorpha sum of variances with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.tip.dated.tree.disparity.sov <- dispRity::dispRity(Enantiornithes.boot.tip.dated.tree.binned.morphospace, metric = c(sum, variances))
 Ornithuromorpha.boot.tip.dated.tree.disparity.sov <- dispRity::dispRity(Ornithuromorpha.boot.tip.dated.tree.binned.morphospace, metric = c(sum, variances))
 ```
 
 Calculate sum of ranges.
 
-```{r calculate Enantiornithes and Ornithuromorpha sum of ranges with ancestral state estimates}
+```{r calculate Enantiornithes and Ornithuromorpha sum of ranges with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.tip.dated.tree.disparity.sor <- dispRity::dispRity(Enantiornithes.boot.tip.dated.tree.binned.morphospace, metric = c(sum, ranges))
 Ornithuromorpha.boot.tip.dated.tree.disparity.sor <- dispRity::dispRity(Ornithuromorpha.boot.tip.dated.tree.binned.morphospace, metric = c(sum, ranges))
 ```
 
 Calculate median centroids.
 
-```{r calculate Enantiornithes and Ornithuromorpha median centroids with ancestral state estimates}
+```{r calculate Enantiornithes and Ornithuromorpha median centroids with ancestral state estimates, message=FALSE, warning=FALSE, results=FALSE}
 Enantiornithes.boot.tip.dated.tree.disparity.moc <- dispRity::dispRity(Enantiornithes.boot.tip.dated.tree.binned.morphospace, metric = c(median, centroids))
 Ornithuromorpha.boot.tip.dated.tree.disparity.moc <- dispRity::dispRity(Ornithuromorpha.boot.tip.dated.tree.binned.morphospace, metric = c(median, centroids))
 ```
@@ -975,7 +975,7 @@ points(x = comparison_time_bins[1:(length(comparison_time_bins) - 1)] + diff(com
 
 We can also repeat the PERMANOVA test before. First we can create new taxon groups.
 
-```{r make taxon groups with ancestors}
+```{r make taxon groups with ancestors, message=FALSE, warning=FALSE, results=FALSE}
 taxon_groups_inc_ancestors <- list(NonOrnithothoracesIncAncestors = setdiff(rownames(stem.tip.dated.tree.pcoa.data), c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$node.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$node.label)), EnantiornithesIncAncestors = c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Enantiornithes))$node.label), OrnithuromorphaIncAncestors = c(Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$tip.label, Claddis::drop_time_tip(stem.tip.dated.tree, setdiff(stem.tip.dated.tree$tip.label, phylo_taxon_groups$Ornithuromorpha))$node.label))
 groups_inc_ancestors_as_factors <- as.factor(do.call(rbind, lapply(as.list(names(taxon_groups_inc_ancestors)), function(x) cbind(x, taxon_groups_inc_ancestors[[x]])))[, 1])
 names(groups_inc_ancestors_as_factors) <- unname(unlist(taxon_groups_inc_ancestors))
@@ -984,7 +984,7 @@ groups_inc_ancestors_as_factors <- groups_inc_ancestors_as_factors[rownames(stem
 
 Perform test.
 
-```{r perform adonis test with ancestors included}
+```{r perform adonis test with ancestors included, message=FALSE, warning=FALSE, results=FALSE}
 pairwise.adonis(stem.tip.dated.tree.pcoa.data, groups_inc_ancestors_as_factors, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
 ```
 
@@ -994,7 +994,7 @@ We can also examine individual subregions of the skeleton.
 
 First we can define these as the character sets they contain.
 
-```{r define character subsets}
+```{r define character subsets, message=FALSE, warning=FALSE, results=FALSE}
 skull.characters <- c(1:48, 262, 263, 267, 268, 275)
 axial.characters <- c(49:81, 269, 270)
 pectoral.characters <- c(82:120, 246:249, 251, 252, 271, 274, 276)
@@ -1005,7 +1005,7 @@ hindlimb.characters <- c(199:243, 254:261, 264, 266)
 
 And use these to make pruned versions of our cladistic matrix.
 
-```{r prune matrix by skeletal region}
+```{r prune matrix by skeletal region, message=FALSE, warning=FALSE, results=FALSE}
 skull.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), skull.characters))
 axial.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), axial.characters))
 pectoral.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, characters2prune = setdiff(1:ncol(stem.nexus.data$matrix_1$matrix), pectoral.characters))
@@ -1016,7 +1016,7 @@ hindlimb.stem.nexus.data <- Claddis::prune_cladistic_matrix(stem.nexus.data, cha
 
 And we can now ordinate the data.
 
-```{r ordinate character subregions}
+```{r ordinate character subregions, message=FALSE, warning=FALSE, results=FALSE}
 skull.pcoa.data <- Claddis::ordinate_cladistic_matrix(skull.stem.nexus.data, distance_metric = "mord")
 axial.pcoa.data <- Claddis::ordinate_cladistic_matrix(axial.stem.nexus.data, distance_metric = "mord")
 pectoral.pcoa.data <- Claddis::ordinate_cladistic_matrix(pectoral.stem.nexus.data, distance_metric = "mord")
@@ -1029,7 +1029,7 @@ hindlimb.pcoa.data <- Claddis::ordinate_cladistic_matrix(hindlimb.stem.nexus.dat
 
 We can now convert thesd into dispRity objects, subsettng by time.
 
-```{r subset regional data by time bin}
+```{r subset regional data by time bin, message=FALSE, warning=FALSE, results=FALSE}
 skull.chrono.dispRity <- dispRity::chrono.subsets(data = skull.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(skull.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(skull.pcoa.data$vectors), ])
 axial.chrono.dispRity <- dispRity::chrono.subsets(data = axial.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(axial.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(axial.pcoa.data$vectors), ])
 pectoral.chrono.dispRity <- dispRity::chrono.subsets(data = pectoral.pcoa.data$vectors, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pectoral.pcoa.data$vectors))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = tip.ages[rownames(pectoral.pcoa.data$vectors), ])
@@ -1040,7 +1040,7 @@ hindlimb.chrono.dispRity <- dispRity::chrono.subsets(data = hindlimb.pcoa.data$v
 
 Or by group.
 
-```{r subset regional data by group}
+```{r subset regional data by group, message=FALSE, warning=FALSE, results=FALSE}
 skull.group.dispRity <- dispRity::custom.subsets(skull.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(skull.pcoa.data$vectors)), rownames(skull.pcoa.data$vectors))))
 axial.group.dispRity <- dispRity::custom.subsets(axial.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(axial.pcoa.data$vectors)), rownames(axial.pcoa.data$vectors))))
 pectoral.group.dispRity <- dispRity::custom.subsets(pectoral.pcoa.data$vectors, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors)), Enantiornithes = match(intersect(Enantiornithes, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(pectoral.pcoa.data$vectors)), rownames(pectoral.pcoa.data$vectors))))
@@ -1051,7 +1051,7 @@ hindlimb.group.dispRity <- dispRity::custom.subsets(hindlimb.pcoa.data$vectors, 
 
 And bootstrap the data.
 
-```{r bootstrap regional data}
+```{r bootstrap regional data, message=FALSE, warning=FALSE, results=FALSE}
 skull.chrono.dispRity.booted <- dispRity::boot.matrix(skull.chrono.dispRity, bootstrap = 1000)
 axial.chrono.dispRity.booted <- dispRity::boot.matrix(axial.chrono.dispRity, bootstrap = 1000)
 pectoral.chrono.dispRity.booted <- dispRity::boot.matrix(pectoral.chrono.dispRity, bootstrap = 1000)
@@ -1147,7 +1147,7 @@ Brougham and Campione REF showed that body size can strongly influence discrete 
 
 First we need to import body mass estimates for our taxa (NB: these are not available for all species).
 
-```{r import body mass data}
+```{r import body mass data, message=FALSE, warning=FALSE, results=FALSE}
 mass <- matrix(data = c(143.47, 1084.33, 507.74, 825.25, 1982.61, 358.95, 138.4, 237.09, 173.41, 420.61, 112.49, 56.29, 81.42, 57.01, 88.85, 116.95, 43.01, 102.83, 524.68, 347.78, 111.39, 488.41, 188.18, 63.78, 22.69, 40.02, 38.3, 238.84, 281.34, 221.68, 220.01, 170.54, 40.61, 345.57, 143.47, 242.37, 86.01, 15.04, 186.67, 319.74, 547.8, 1044.63, 1040.28, 43.01, 153.95, 93.7, 62.23, 109.21, 91.74, 3748.94, 350, 672.79, 220.01, 231.88, 153.95, 19523.12, 6372.23, 11741.66, 821.48, 98.7, 443.38, 35.52, 1617.31, 679.46, 727.28, 152.62, 339, 602.09, 269.84, 92.71, 2642.31), ncol = 1, dimnames = list(c("Archaeopteryx", "Jeholornis", "Jinguofortis", "Chongmingia", "Sapeornis", "Confuciusornis_sanctus", "Changchengornis_hengdaoziensis", "Eoconfuciusornis_zhengi", "Confuciusornis_dui", "Yangavis", "Boluochia", "Concornis", "Eoalulavis", "Cathayornis", "Eoenantiornis", "Gobipteryx", "Longipteryx", "Longirostravis", "Neuquenornis", "Pengornis", "Eopengornis", "Chiappeavis", "Parapengornis", "Protopteryx", "Rapaxavis", "Shanweiniao", "Vescornis", "Piscivorenantiornis", "Linyiornis", "Sulcavis", "Bohaiornis", "Longusunguis", "Shenqiornis", "Zhouornis", "Parabohaiornis", "Fortunguavis", "Pterygornis", "Cruralispennia", "Monoenantiornis", "Archaeorhynchus", "Schizooura", "Bellulornis", "Jianchangornis", "Longicrusavis", "Apsaravis", "Hongshanornis", "Archaeornithura", "Parahongshanornis", "Tianyuornis", "Patagopteryx", "Yixianornis", "Piscivoravis", "Iteravis", "Gansus", "Ichthyornis", "Hesperornis", "Baptornis_advenus", "Baptornis_varneri", "Vegavis", "Shangyang", "Mengciusornis", "Mirusavis", "Yanornis", "Similiyanornis", "Abitusavis", "Eogranivora", "Gretcheniao", "Xinghaiornis", "Dingavis", "Qiliania", "Vorona"), "mass"))
 mass <- as.data.frame(mass)
 mass$mass <- log10(as.numeric(mass$mass))
@@ -1155,19 +1155,19 @@ mass$mass <- log10(as.numeric(mass$mass))
 
 Next we can generate a PCoA space.
 
-```{r ordinate data for mass analyses}
+```{r ordinate data for mass analyses, message=FALSE, warning=FALSE, results=FALSE}
 mass.pcoa.data <- Claddis::ordinate_cladistic_matrix(nexus.data)$vectors
 ```
 
 Before we go further we should isolate our data to just the taxa we can use (those possessing both all calculable pairwise distances and a mass estimate).
 
-```{r isolate mass and pcoa names}
+```{r isolate mass and pcoa names, message=FALSE, warning=FALSE, results=FALSE}
 mass.names <- intersect(rownames(mass.pcoa.data), rownames(mass))
 ```
 
 And make objects we can use with just these taxa present.
 
-```{r make mass versions of objects}
+```{r make mass versions of objects, message=FALSE, warning=FALSE, results=FALSE}
 mass <- mass[mass.names, , drop = FALSE]
 mass.pcoa.data <- mass.pcoa.data[mass.names, ]
 mass.tip.ages <- tip.ages[mass.names, ]
@@ -1179,7 +1179,7 @@ attr(mass.mass.distances, "Labels") <- mass.names
 
 Now we can perform various comparisons of mass and morphological variance.
 
-```{r perform series of mass tests}
+```{r perform series of mass tests, message=FALSE, warning=FALSE, results=FALSE}
 mass.corphy.pco1 <- ape::corphylo(cbind(mass[mass.names, ], mass.pcoa.data[mass.names, 1]), phy = mass.tip.dated.tree)
 mass.rlm.pco1 <- MASS::rlm(mass.pcoa.data[mass.names, 1] ~ mass[mass.names, ], as.data.frame(mass.pcoa.data), method = "MM", maxit = 1000)
 mass.rlm.pco1 <- lm(mass.pcoa.data[mass.names, 1] ~ mass[mass.names, ], mass.rlm.pco1$model, weights = mass.rlm.pco1$w)
@@ -1191,7 +1191,7 @@ mass.lm.distances <- lm(mass.morph.distances ~ mass.mass.distances)
 
 We can then compile these results in the Campione and Broughma style [REF].
 
-```{r compile mass results}
+```{r compile mass results, message=FALSE, warning=FALSE, results=FALSE}
 all_results <- c()
 results <- list(pcoa = mass.pcoa.data, corphy_bm_pco1 = mass.corphy.pco1, pco1_rlm = mass.rlm.pco1, pco1_pv = Claddis::ordinate_cladistic_matrix(nexus.data)$values$Rel_corr_eig[1], pco_n_pgls = mass.n.pgls, pco_all_pgls = mass.all.pgls, mantel = mass.mantel, dists_lm = mass.lm.distances, fn = "matrix.nex")
 if (!length(all_results)) {
@@ -1229,7 +1229,7 @@ mtext('PCo1', side = 2, outer = TRUE, line = 2)
 
 We can also compile our results ina  stats table.
 
-```{r compile body mass analyses}
+```{r compile body mass analyses, message=FALSE, warning=FALSE, results=FALSE}
 names(stat_table) <- c("Mesozoic birds")
 stat_table <- t(stat_table)
 colnames(stat_table)[c(5, 7, 9, 10)] <- "r2"
@@ -1296,7 +1296,7 @@ mtext('Body mass distances', side = 2, outer = TRUE, line = 2)
 
 We can also calculate character exhaustion values for the full data set and the Enantiornithes and Ornithuromorpha subsets. Note that polymorphisms and uncertainties are not allowed by the function so these are replaced with missing values.
 
-```{r calculate character exhaustion values}
+```{r calculate character exhaustion values, message=FALSE, warning=FALSE, results=FALSE}
 full.exhaustion.results <- paleotree::accioExhaustionCurve(phyloTree = Claddis::drop_time_tip(tip.dated.tree, c("Gallus", "Anas")), charData = apply(nexus.data$matrix_1$matrix, 2, function(x) {if(length(grep("&|/", x)) > 0) {x[grep("&|/", x)] <- NA}; if(any(is.na(x))) x[is.na(x)] <- "?"; if(any(x == "")) x[x == ""] <- "?"; x})[setdiff(rownames(nexus.data$matrix_1$matrix), c("Gallus", "Anas")), ], outgroup = "Dromaeosauridae", missingCharValue = "?", charTypes = gsub("ord", "ordered", nexus.data$matrix_1$ordering))
 Enantiornithes.exhaustion.results <- paleotree::accioExhaustionCurve(phyloTree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, c("Archaeorhynchus", taxon_groups$Enantiornithes))), charData = apply(nexus.data$matrix_1$matrix, 2, function(x) {if(length(grep("&|/", x)) > 0) {x[grep("&|/", x)] <- NA}; if(any(is.na(x))) x[is.na(x)] <- "?"; if(any(x == "")) x[x == ""] <- "?"; x})[c("Archaeorhynchus", taxon_groups$Enantiornithes), ], outgroup = "Archaeorhynchus", missingCharValue = "?", charTypes = gsub("ord", "ordered", nexus.data$matrix_1$ordering))
 Ornithuromorpha.exhaustion.results <- paleotree::accioExhaustionCurve(phyloTree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, c("Protopteryx", taxon_groups$Ornithuromorpha))), charData = apply(nexus.data$matrix_1$matrix, 2, function(x) {if(length(grep("&|/", x)) > 0) {x[grep("&|/", x)] <- NA}; if(any(is.na(x))) x[is.na(x)] <- "?"; if(any(x == "")) x[x == ""] <- "?"; x})[c("Protopteryx", taxon_groups$Ornithuromorpha), ], outgroup = "Protopteryx", missingCharValue = "?", charTypes = gsub("ord", "ordered", nexus.data$matrix_1$ordering))
@@ -1317,7 +1317,7 @@ A potential concern is that our morphological disparity results merely reflect t
 
 To explore this we can begin by looking at the phylogenetic distances (in millions of years) between our species.
 
-```{r calculate phylogenetic distances and ordination of those distances}
+```{r calculate phylogenetic distances and ordination of those distances, message=FALSE, warning=FALSE, results=FALSE}
 phylo.distances <- ape::cophenetic.phylo(Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pcoa.data))))
 phylo.pcoa.data <- ape::pcoa(phylo.distances, correction = "cailliez")$vectors.cor[rownames(pcoa.data), ]
 morph.distances <- Claddis::calculate_morphological_distances(nexus.data)$distance_matrix[rownames(pcoa.data), rownames(pcoa.data)]
@@ -1332,21 +1332,21 @@ plot(phylo.distances, morph.distances, log = "x", pch = 20, xlab = "Phylogenetic
 
 We also see similar mean paiwrise distances by group...
 
-```{r phylogenetic mean pariwise distances by group}
+```{r phylogenetic mean pariwise distances by group, message=FALSE, warning=FALSE, results=FALSE}
 Claddis::calculate_MPD(list(distance_matrix = morph.distances), taxon_groups)
 Claddis::calculate_MPD(list(distance_matrix = phylo.distances), taxon_groups)
 ```
 
 ...or time bin.
 
-```{r phylogenetic mean pairwise distances by time bin}
+```{r phylogenetic mean pairwise distances by time bin, message=FALSE, warning=FALSE, results=FALSE}
 Claddis::calculate_MPD(list(distance_matrix = morph.distances), taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
 Claddis::calculate_MPD(list(distance_matrix = phylo.distances), taxon_groups = Claddis::assign_taxa_to_bins(taxon_ages = pcoa.ages.data, time_bins))
 ```
 
 We can also build dispRity objects as before, for both time bins and groups.
 
-```{r build phylogenetic and morphological dispRity objects}
+```{r build phylogenetic and morphological dispRity objects, message=FALSE, warning=FALSE, results=FALSE}
 morph.group.disprity <- dispRity::custom.subsets(morph.pcoa.data, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(morph.pcoa.data)), rownames(morph.pcoa.data)), Enantiornithes = match(intersect(Enantiornithes, rownames(morph.pcoa.data)), rownames(morph.pcoa.data)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(morph.pcoa.data)), rownames(morph.pcoa.data))))
 phylo.group.disprity <- dispRity::custom.subsets(phylo.pcoa.data, group = list(NonOrnithothoraces = match(intersect(NonOrnithothoraces, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data)), Enantiornithes = match(intersect(Enantiornithes, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data)), Ornithuromorpha = match(intersect(Ornithuromorpha, rownames(phylo.pcoa.data)), rownames(phylo.pcoa.data))))
 morph.chrono.disprity <- dispRity::chrono.subsets(data = morph.pcoa.data, tree = Claddis::drop_time_tip(tip.dated.tree, setdiff(tip.dated.tree$tip.label, rownames(pcoa.data))), method = "discrete", time = time.bins, inc.nodes = FALSE, FADLAD = disprity.ages.data)
@@ -1355,7 +1355,7 @@ phylo.chrono.disprity <- dispRity::chrono.subsets(data = phylo.pcoa.data, tree =
 
 And bootstrap them.
 
-```{r bootstrap phylogenetic and morphological dispRity objects}
+```{r bootstrap phylogenetic and morphological dispRity objects, message=FALSE, warning=FALSE, results=FALSE}
 morph.group.disprity.boot <- dispRity::boot.matrix(morph.group.disprity, bootstrap = 1000)
 phylo.group.disprity.boot <- dispRity::boot.matrix(phylo.group.disprity, bootstrap = 1000)
 morph.chrono.disprity.boot <- dispRity::boot.matrix(morph.chrono.disprity, bootstrap = 1000)
@@ -1364,7 +1364,7 @@ phylo.chrono.disprity.boot <- dispRity::boot.matrix(phylo.chrono.disprity, boots
 
 And calculate our normal suite of disparity metrics.
 
-```{r calculate phylogenetic and morphological disparity metrics}
+```{r calculate phylogenetic and morphological disparity metrics, message=FALSE, warning=FALSE, results=FALSE}
 morph.group.disprity.boot.sov <- dispRity::dispRity(morph.group.disprity.boot, metric = c(sum, variances))
 phylo.group.disprity.boot.sov <- dispRity::dispRity(phylo.group.disprity.boot, metric = c(sum, variances))
 morph.chrono.disprity.boot.sov <- dispRity::dispRity(morph.chrono.disprity.boot, metric = c(sum, variances))
