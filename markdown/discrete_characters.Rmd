@@ -1,5 +1,5 @@
 ---
-title: "R code for disparity analyses of discrete morphological characters of Mesozoic birds"
+title: "R code for discrete morphological character analyses for the paper: The patterns and modes of the evolution of disparity in Mesozoic Birds"
 geometry: scale=0.8
 papersize: a4
 output: html_document
@@ -19,21 +19,30 @@ fontsize: 12pt
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction
+### Introduction
 
-This R code performs comparative phylogenetic analysis of the pattern and mode of morphological disparity of Mesozoic birds. Varing methods are used to scaled the phylogeny, including the minimal branch length (mbl), equal and tip-dated methods. 1) a distance matrix was constructed by calculating a morphological distance between each pair of taxa using the MorphDistMatrix function. We chose the Maximum Observable Rescaled Distance (MORD) and the Generalised Euclidean Distance (GED) as the distance metrics, because they are more suitable to datasets containing fossils; the distance metrics were also calculated using the ??HSJ?? approach to account for inapplicable characters. All these different approaches can be applied by changing the Arguments in MorphDistMatrix () and Claddis::ordinate_cladistic_matrix (). These different methods produced essentially same results, and thus the mbl-scaled and MORD distance methods were detailed bellow, and corresponding results were present in figures. 2) First, we explore the pattern and mode of disparity of Mesozoic birds as a whole using three metrics (sum of variances and ranges, and median distance from centroids), and then conducted intergroup comparison; 3) A nonparametric multivariate analysis of variance (PERMANOVA) test was used to test whether the three avian groups were statistically seprated in morphospace; 4) we subdivided the character matrix into six anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb), and conducted aforementioned comparative analyses to explore whether these subregions demonstrate different patterns; 5) finally, we performed the character exhaustion analyses.
+The R code shown here performs all of the discrete morphological character tests used in the paper "The patterns and modes of the evolution of disparity in Mesozoic Birds". All analyses should be reproducible on your own machine as data are provided on the GitHub respository and are read in via URL rather than local paths. Please make sure you use the latest version of Claddis (installation instructions below).
+
+Specifically, this script:
+
+1. Employs various methods to time-scale the phylogenetic hypothes(es) used, including minimal branch length (mbl) @Laurin2004, equal @Brusatte2008, and tip-dating @Pyron2011, @Ronquist2012 approaches.
+2. Generates pairwise distance matrices directly from the discrete characters, including using Maximum Observable Rescaled Distance (MORD; @Lloyd2016), Generalised Euclidean Distance (GED; @Wills1994), and the Hopkins and St John (HSJ; @Hopkins2018) approaches, and]with or without inferred ancestral values.
+3. Ordinates these distance matri(ces) into metric spaces using principal coordinates analysis @Gower1966.
+
+
+using the 1) a distance matrix was constructed by calculating a morphological distance between each pair of taxa using the MorphDistMatrix function. We chose the  and the  as the distance metrics, because they are more suitable to datasets containing fossils; the distance metrics were also calculated using the ??HSJ?? approach to account for inapplicable characters. All these different approaches can be applied by changing the Arguments in MorphDistMatrix () and Claddis::ordinate_cladistic_matrix (). These different methods produced essentially same results, and thus the mbl-scaled and MORD distance methods were detailed bellow, and corresponding results were present in figures. 2) First, we explore the pattern and mode of disparity of Mesozoic birds as a whole using three metrics (sum of variances and ranges, and median distance from centroids), and then conducted intergroup comparison; 3) A nonparametric multivariate analysis of variance (PERMANOVA) test was used to test whether the three avian groups were statistically seprated in morphospace; 4) we subdivided the character matrix into six anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb), and conducted aforementioned comparative analyses to explore whether these subregions demonstrate different patterns; 5) finally, we performed the character exhaustion analyses.
 
 Test reference @R-base.
 
-# Required packages
+### Required packages
 
-Before we begin we need to make sure the functions used in this file are installed in R by getting the packages from CRAN.
+Before we begin we need to make sure the functions used in this file are available in R by installing the required packages from CRAN.
 
 ```{r install required CRAN packages, message=FALSE, warning=FALSE, results=FALSE}
 install.packages(c("phytools", "paleotree", "devtools", "maps", "dispRity", "Claddis", "strap", "vegan", "geomorph", "devtools", "gtools", "knitr", "MASS", "phylobase", "magrittr", "kableExtra", "RColorBrewer"), dependencies = TRUE)
 ```
 
-We also require some newer functions from the latest versions of the Claddis and dispRity packages so we will install these directly from GitHub.
+We also require some newer functions from the latest versions of the Claddis and dispRity packages in partciular so we will install these directly from GitHub.
 
 ```{r install required GitHub packages, message=FALSE, warning=FALSE, results=FALSE}
 devtools::install_github("graemetlloyd/Claddis")
@@ -47,11 +56,11 @@ library(dispRity)
 library(stringr)
 ```
 
-# Loading data
+### Loading data
 
 Before any analyses can be perfomed the raw data must be imported into R. This includes our discrete character data, phylogenetic hypotheses and information on our taxon ages.
 
-First we will load the key raw data from the GitHub data folder into memory.
+We will load the key raw data from the GitHub data folder into memory.
 
 ```{r import data into R, message=FALSE, warning=FALSE, results=FALSE}
 nexus.data <- Claddis::read_nexus_matrix("https://raw.githubusercontent.com/graemetlloyd/ProjectAncientBeak/main/data/matrix.nex")
@@ -60,7 +69,7 @@ mpts <- ape::read.nexus("https://raw.githubusercontent.com/graemetlloyd/ProjectA
 tip.dated.tree <- ape::read.nexus("https://raw.githubusercontent.com/graemetlloyd/ProjectAncientBeak/main/data/tipdated.tre")
 ```
 
-We can also add a strict consensus tree for our parsimony data using the consensus function in the ape package.
+We can also make a strict consensus tree for our parsimony data using the consensus function in the ape package.
 
 ```{r build strict consensus tree, message=FALSE, warning=FALSE, results=FALSE}
 sc.tree <- ape::consensus(mpts)
@@ -87,18 +96,18 @@ taxon_groups <- list(Enantiornithes = Enantiornithes, Ornithuromorpha = Ornithur
 class(taxon_groups) <- "taxonGroups"
 ```
 
-# Time-scaling phylogenetic trees
+### Time-scaling phylogenetic trees
 
-Before we can use our parsimony trees these need to be assigned branch lengths reflecting their durations and a root age "pinning" their origin in time. The tip-dated tree also needs the latter as this is not standard output from software like BEAST, MrBayes or RevBayes (as they typically assume the most recent taxon will be extant, i.e., 0 Ma old).
+Before we can use our parsimony trees these need to be assigned branch lengths reflecting their durations and a root age "pinning" their origin in time. The tip-dated tree also needs the latter, as this is not standard output from software like BEAST, MrBayes or RevBayes (as they typically simply assume the most recent taxon will be extant, i.e., 0 Ma old).
 
-Parsimony trees can be time-scaled in R in simple ad-hoc ways, such as setting a minimum branch= length ("mbl").
+Parsimony trees can be time-scaled in R in simple ad-hoc ways, such as setting a minimum branch length ("mbl") of one million years.
 
 ```{r time-scale trees using mbl method, message=FALSE, warning=FALSE, results=FALSE}
 time.trees <- lapply(mpts, function(x) paleotree::timePaleoPhy(x, tip.ages, type = "mbl", vartime = 1))
 time.sc.tree <- paleotree::timePaleoPhy(sc.tree, tip.ages, type = "mbl", vartime = 1)
 ```
 
-Alternatively, after setting every internal node as old as its' oldest descendant taxon - a process which generates multiple problematic zero-length branches (zlbs) - these zlbs can be assigned positive duration by sharing it equally ("equal") with the first preceding branch of positive duration.
+Alternatively, after setting every internal node as old as its' oldest descendant taxon - a process which generates multiple problematic zero-length branches (zlbs) - these zlbs can be assigned positive duration by sharing time equally ("equal" method) with the first preceding branch of positive duration.
 
 ```{r time-scale trees using equal method, message=FALSE, warning=FALSE, results=FALSE}
 time.trees2 <- lapply(mpts, function(x) paleotree::timePaleoPhy(x, tip.ages, type = "equal", vartime = 1))
@@ -108,12 +117,12 @@ time.sc.tree2 <- paleotree::timePaleoPhy(sc.tree, tip.ages, type = "equal", vart
 Our tip-dated tree already has branch durations, but still needs a root age assignment. Here, as we have two extant taxa (Anas, Gallus) we can simply set this using the maximum path-length (root to Anas (or Gallus) path) in millions of years.
 
 ```{r set tip-dated tree root age, message=FALSE, warning=FALSE, results=FALSE}
-tip.dated.tree$root.time <- max(diag(ape::vcv(tip.dated.tree))) # Set root age as max path length due to extant taxa
+tip.dated.tree$root.time <- max(diag(ape::vcv(tip.dated.tree)))
 ```
 
-# Pruning crown bird taxa
+### Pruning crown bird taxa
 
-As our analysis is focused on the Mesozoic and sampling of Neornithes - the bird crown - is severely limited we need to prune these taxa.
+As our analysis is focused on the Mesozoic, and sampling of Neornithes - the bird crown - is severely limited, we need to prune these taxa.
 
 ```{r remove crown taxa from data, message=FALSE, warning=FALSE, results=FALSE}
 crown.taxa.to.remove <- c("Gallus", "Anas")
@@ -125,11 +134,11 @@ stem.tip.dated.tree <- Claddis::drop_time_tip(tip.dated.tree, tip_names = crown.
 stem.nexus.data <- Claddis::prune_cladistic_matrix(nexus.data, taxa2prune = crown.taxa.to.remove)
 ```
 
-# Calculate discrete morphological distances and ordinate data
+### Calculate discrete morphological distances and ordinate data
 
-In order to analyse the data further morphological distances between each taxon pair need to be calculated. These distances can be used directly as a disparity measure or ordinated into a morphospace, e.g., using principal coordinates.
+In order to analyse the data further morphological distances between each taxon pair need to be calculated. These distances can be used directly as a disparity measure or ordinated into a metric "morpho" space, e.g., using principal coordinates.
 
-First we can generate a distance matrix using the Maximum Observable Rescaled Distance ("mord") metric. This is effectively a modified version of the Gower coefficient that ensures all distances are placed on a zero to one scale. These rescale distances based on available (observable) characters as a means of dealing with missing data.)
+First we can generate a distance matrix using the Maximum Observable Rescaled Distance ("mord") metric @Lloyd2016. This is effectively a modified version of the Gower Coefficient @Gower1971 that ensures all distances are placed on a zero to one scale. These rescale distances based on available (observable) characters as a means of dealing with missing data.)
 
 ```{r calculate mord distances, message=FALSE, warning=FALSE, results=FALSE}
 stem.mord.dist.data <- Claddis::calculate_morphological_distances(stem.nexus.data, distance_metric = "mord", distance_transformation = "none")
@@ -147,11 +156,11 @@ We can also ordinate the data into a high-dimensional space - effectively giving
 stem.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, distance_metric = "mord")
 ```
 
-# The problem of inapplicable characters
+### The problem of inapplicable characters
 
 An additional complication for discrete characters is the coding of some data as "inapplicable" due to hierarchical coding strategies. E.g., one character may encode the presence or absence of feathers and another the coour of those feathers. For a taxon that is coded as absent for the presence of feathers there is no logical coding for their colour. Even coding them as missing is misleading, especially if data are rescaled or an estimate for this state is made when no value is logically possible. Failing to account for this issue can lead to ranked distances that are misleading and hence distort any subsequent downstream analysis, including ordination.
 
-A solution to this problem was put forward by Hopkins and St John ([REF]; HSJ) that requires explicitly stating the hierarchical nature of character dependencies. This information is then used to encode the differences across each set of linked characters into just the character at the top of each hierarchy. We can start by stating these dependencies with a simple table.
+A solution to this problem was put forward by Hopkins and St John (@Hopkins2018; HSJ) that requires explicitly stating the hierarchical nature of character dependencies. This information is then used to encode the differences across each set of linked characters into just the character at the top of each hierarchy. We can start by stating these dependencies with a simple table.
 
 ```{r set character dependencies, message=FALSE, warning=FALSE, results=FALSE}
 character.dependencies <- matrix(c(35, 34, 75, 69, 173, 172), ncol = 2, byrow = TRUE, dimnames = list(c(), c("dependent_character", "independent_character")))
@@ -163,7 +172,7 @@ Next we can apply the HSJ solution using a chosen alpha value that varies the in
 stem.pcoa.data <- Claddis::ordinate_cladistic_matrix(stem.nexus.data, distance_metric = "mord", distance_inapplicable_behaviour = "hsj", character_dependencies = character.dependencies, alpha = 0.5)
 ```
 
-# Incalculable distances and removing poorly known taxa
+### Incalculable distances and removing poorly known taxa
 
 Due to missing data some pairwise distances can be incalculable. For example, if one fosil taxon is only know from cranial remains and another from only postcranial remains there are no charaters that can be coded for both taxa and hence no way to calculate a distance, regardless of wehther mord or ged is used. If applying distance-only metrics this is not a problem, but if we desire to ordinate our data into a metric space there must be a value for every pairwise distance and hence Claddis will iteratively remove the taxon that cuses the most incalculable distances until the matrix is complete.
 
@@ -188,7 +197,7 @@ taxon_groups <- lapply(taxon_groups, function(x) {indices.to.remove <- sort(matc
 class(taxon_groups) <- "taxonGroups"
 ```
 
-# Plotting our discrete character morphospaces
+### Plotting our discrete character morphospaces
 
 As with any analysis it can be important to visualise the data to identify general patterns and guide interpretation. Here we will use some of the plotting function froms Claddis.
 
@@ -206,7 +215,7 @@ As we can see from the axis labels an issue with discrete character data sets is
 Claddis::plot_multi_morphospace(stem.pcoa.data, n_axes = 8, plot_taxon_names = FALSE, taxon_groups = taxon_groups, plot_convex_hulls = TRUE)
 ```
 
-We can also make a stacked morphospace plot [FOOTE REF], but first we need to make a new tip ages object.
+We can also make a stacked morphospace plot @Foote1993, but first we need to make a new tip ages object.
 
 ```{r reformat age data for use with Claddis, message=FALSE, warning=FALSE, results=FALSE}
 pcoa.ages.data <- tip.ages[rownames(stem.pcoa.data$distance_matrix), ]
@@ -226,7 +235,7 @@ Now we can make the stack plot.
 Claddis::plot_morphospace_stack(stem.pcoa.data, taxon_ages = pcoa.ages.data, taxon_groups, time_bins, palette = "viridis", group_legend_position = "bottom_right")
 ```
 
-# Calculate disparity metrics
+### Calculate disparity metrics
 
 We can also use our data to calculate disparity metrics, either for taxonomic groups or time bins.
 
@@ -447,7 +456,7 @@ boxplot(lapply(stem.aves.groups.bootstrap.sor$disparity, function(x) unlist(x)),
 boxplot(lapply(stem.aves.groups.bootstrap.moc$disparity, function(x) unlist(x)), ylab = "Centroid Median")
 ```
 
-# Enantiornithes versus Ornithuromorpha comparisons
+### Enantiornithes versus Ornithuromorpha comparisons
 
 Our main aim is to compare the morphospaces of the two major sister-clades of Mesozoic birds, Enantiornithes and Ornithuromorpha. We will begin by creating separate PCoA data sets.
 
@@ -712,7 +721,7 @@ And now we can do our pairwise adonis tests.
 pairwise.adonis(pcoa.data, groups_as_factors, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
 ```
 
-# Adding ancestral state estimates to the data.
+### Adding ancestral state estimates to the data.
 
 We can repeat many of these tests but including ancestral state estimates in the sample. We can start with Claddis.
 
@@ -988,7 +997,7 @@ Perform test.
 pairwise.adonis(stem.tip.dated.tree.pcoa.data, groups_inc_ancestors_as_factors, sim.method = "mahalanobis", p.adjust.m = "bonferroni")
 ```
 
-# Reanalysing by skeletal subregion
+### Reanalysing by skeletal subregion
 
 We can also examine individual subregions of the skeleton.
 
@@ -1141,9 +1150,9 @@ boxplot(lapply(dispRity::dispRity(pelvic.group.dispRity.booted, metric = c(media
 boxplot(lapply(dispRity::dispRity(hindlimb.group.dispRity.booted, metric = c(median, centroids))$disparity, function(x) unlist(x)), main = "Hindlimb", ylab = "Centroid Medians")
 ```
 
-# Effect of body mass on morphospace
+### Effect of body mass on morphospace
 
-Brougham and Campione REF showed that body size can strongly influence discrete character morphospaces in dinosaurs and we can use the same technique to explore whether a similar effect is seen in birds.
+Brougham and Campione @Brougham2020 showed that body size can strongly influence discrete character morphospaces in dinosaurs and we can use the same technique to explore whether a similar effect is seen in birds.
 
 First we need to import body mass estimates for our taxa (NB: these are not available for all species).
 
@@ -1189,7 +1198,7 @@ mass.mantel <- ade4::mantel.rtest(mass.morph.distances, mass.mass.distances, nre
 mass.lm.distances <- lm(mass.morph.distances ~ mass.mass.distances)
 ```
 
-We can then compile these results in the Campione and Broughma style [REF].
+We can then compile these results in the @Brougham2020 style.
 
 ```{r compile mass results, message=FALSE, warning=FALSE, results=FALSE}
 all_results <- c()
@@ -1292,7 +1301,7 @@ mtext('Discrete character distances', side = 1, outer = TRUE, line = 2)
 mtext('Body mass distances', side = 2, outer = TRUE, line = 2)
 ```
 
-# Character exhaustion
+### Character exhaustion
 
 We can also calculate character exhaustion values for the full data set and the Enantiornithes and Ornithuromorpha subsets. Note that polymorphisms and uncertainties are not allowed by the function so these are replaced with missing values.
 
@@ -1311,7 +1320,7 @@ paleotree::charExhaustPlot(exhaustion_info = Enantiornithes.exhaustion.results, 
 paleotree::charExhaustPlot(exhaustion_info = Ornithuromorpha.exhaustion.results, changesType = "charAlt", main = "Ornithuromorpha")
 ```
 
-# Testing for phylogenetic correlation
+### Testing for phylogenetic correlation
 
 A potential concern is that our morphological disparity results merely reflect the result of phylogenetic "disparity" between species.
 
@@ -1413,13 +1422,4 @@ plot(phylo.chrono.disprity.boot.moc, main = "Phylogeny", ylab = "Centroid Median
 
 rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
 
-
-### TO DOS:
-### ADD REFERENCES
-
-
-DROP CROWN TAXA
-DO REGULAR TIME SERIES AND GROUP DISPARITIES
-TRY TO CORRELATE MORPH AND PHYLO IF POSSIBLE?
-
-# Bibliography
+### Bibliography
