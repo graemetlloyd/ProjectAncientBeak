@@ -9,8 +9,7 @@ header-includes:
 - \author[2]{Graeme T. Lloyd}
 - \author[1]{Chi Zhang}
 - \author[1]{Zhonghe Zhou}
-- \affilition[1]{Institute of Vertebrate Paleontology and Paleoanthropology, Chinese
-  Academy of Sciences, China}
+- \affilition[1]{Institute of Vertebrate Paleontology and Paleoanthropology, Chinese Academy of Sciences, China}
 - \affilition[2]{University of Leeds, UK}
 fontsize: 12pt
 ---
@@ -26,13 +25,12 @@ The R code shown here performs all of the discrete morphological character tests
 Specifically, this script:
 
 1. Employs various methods to time-scale the phylogenetic hypothes(es) used, including minimal branch length (mbl) @Laurin2004, equal @Brusatte2008, and tip-dating @Pyron2011, @Ronquist2012 approaches.
-2. Generates pairwise distance matrices directly from the discrete characters, including using Maximum Observable Rescaled Distance (MORD; @Lloyd2016), Generalised Euclidean Distance (GED; @Wills1994), and the Hopkins and St John (HSJ; @Hopkins2018) approaches, and]with or without inferred ancestral values.
+2. Generates pairwise distance matrices directly from the discrete characters, including using Maximum Observable Rescaled Distance (MORD; @Lloyd2016), Generalised Euclidean Distance (GED; @Wills1994), and the Hopkins and St John (HSJ; @Hopkins2018) approaches, and with or without inferred ancestral values.
 3. Ordinates these distance matri(ces) into metric spaces using principal coordinates analysis @Gower1966.
-
-
-using the 1) a distance matrix was constructed by calculating a morphological distance between each pair of taxa using the MorphDistMatrix function. We chose the  and the  as the distance metrics, because they are more suitable to datasets containing fossils; the distance metrics were also calculated using the ??HSJ?? approach to account for inapplicable characters. All these different approaches can be applied by changing the Arguments in MorphDistMatrix () and Claddis::ordinate_cladistic_matrix (). These different methods produced essentially same results, and thus the mbl-scaled and MORD distance methods were detailed bellow, and corresponding results were present in figures. 2) First, we explore the pattern and mode of disparity of Mesozoic birds as a whole using three metrics (sum of variances and ranges, and median distance from centroids), and then conducted intergroup comparison; 3) A nonparametric multivariate analysis of variance (PERMANOVA) test was used to test whether the three avian groups were statistically seprated in morphospace; 4) we subdivided the character matrix into six anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb), and conducted aforementioned comparative analyses to explore whether these subregions demonstrate different patterns; 5) finally, we performed the character exhaustion analyses.
-
-Test reference @R-base.
+4. Quantifies disparity using multiple metrics (mean pairwise distance, weighted mean pairwise distance, sum of variances, sum of ranges, and median distance from centroid).
+5. Perform nonparametric multivariate analysis of variance (PERMANOVA) tests to infer whether the three avian groups (non-Ornithothoracs, Ornithuromorpha, Enantiornithes) were separated in morphospace.
+6. Explore the saem patterns across different anatomical subregions (skull, vertebral column, pectoral girdle, forelimb, pelvis, and hindlimb).
+7. Perform comparative character exhaustion tests on the two main subclades (Ornithuromorpha and Enantiornithes).
 
 ### Required packages
 
@@ -1418,8 +1416,8 @@ plot(phylo.group.disprity.boot.moc, main = "Phylogeny", ylab = "Centroid Medians
 plot(phylo.chrono.disprity.boot.moc, main = "Phylogeny", ylab = "Centroid Medians")
 ```
 
-##############
-
-rmarkdown::render(input = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Submitted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
+```{r markdown builder, include=FALSE, message=FALSE, warning=FALSE, results=FALSE, echo=FALSE}
+rmarkdown::render(input = "~/Documents/Publications/Accepted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.Rmd", output_format = "html_document", output_file = "~/Documents/Publications/Accepted/Enantiornithes vs Ornithuromorphs - Min/ProjectAncientBeak/markdown/discrete_characters.html")
+```
 
 ### Bibliography
